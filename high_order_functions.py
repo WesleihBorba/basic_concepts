@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from functools import reduce
 
 # Creating a dataset
 np.random.seed(42)
@@ -16,9 +16,6 @@ dataset_3 = pd.DataFrame({'value': dataset_3, 'feature': features[2]})
 
 full_data = pd.concat([dataset_1, dataset_2, dataset_3])
 
-plt.hist(full_data['value'])
-plt.show()
-
 # using map function to normalize to 0 and 1
 max_data = full_data['value'].max(axis=0)
 min_data = full_data['value'].min(axis=0)
@@ -26,5 +23,11 @@ full_data['value'] = list(map(lambda data: ((data-min_data) / (max_data-min_data
                               full_data['value']))
 
 
-plt.hist(full_data['value'])
-plt.show()
+# Using the Filter function to get data greater than 0.5 and the Omega feature
+filter_data = list(filter(lambda row: row['value'] > 0.5 and row['feature'] == 'Omega',
+                          full_data.to_dict('records')))
+
+# Reduce
+int_list = [3, 6, 9, 12]
+
+reduced_int_list = reduce(lambda x, y: x * y, int_list)
