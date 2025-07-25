@@ -71,13 +71,36 @@ polymorphism_loop = [Meteor(data_value), LunarDebris(data_value), MinimalObject(
 
 list_object = []
 for o in polymorphism_loop:
-    o.discover()
-    list_object.append(o)
+    result = o.discover()
+    list_object.append(result)
 
-print(list_object)
 
 # Abstraction
-#class GettingObjectResponse():
+class GettingObjectResponse(ABC):
+    def __init__(self, list_values):
+        self.object_list = list_values
 
+    @abstractmethod
+    def world_response(self):
+        pass
+
+
+class WhatWillHappen(GettingObjectResponse):
+
+    def world_response(self):
+        for index_data in self.object_list:
+            if index_data == 'Meteor':
+                print('We will gonna die')
+                break
+            elif index_data == 'Lunar Debris':
+                print('We can use spatial laser')
+                break
+            else:
+                print('We are saved')
+                break
+
+
+trying = WhatWillHappen(list_object)
+trying.world_response()
 
 # Encapsulation (Public, Protected, Private)
