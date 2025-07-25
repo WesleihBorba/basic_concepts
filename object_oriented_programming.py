@@ -1,8 +1,9 @@
 # The goal is get the image and identify what is
 import numpy as np
+from abc import ABC, abstractmethod
 
 # Input data
-data_value = np.array([2, 5])
+data_value = np.array([2, 5, 7, 9])
 
 
 # Inheritance
@@ -24,68 +25,59 @@ class TransformData(IdentifyImage):
 
 
 class AnalyzeImage(TransformData):
-    def analyze(self, data):
+    def analyze(self):
         TransformData.resize_image(self)
         size_image = TransformData.__len__(self)
-
-
-inheritance_data = AnalyzeImage(data_value)
-inheritance_data.analyze(data_value)
+        print(size_image)
 
 
 # Polymorphism (There are other ways to do this)
+
 class Meteor(IdentifyImage):
 
     def __repr__(self):
-        print(f'Its a Meteor')
+        return 'Its a Meteor'
 
-    def discover(self, data):
-        IdentifyImage.__init__(self, data)
-        size = IdentifyImage.__len__(self)
-
-        if size == 4:
-            self.__repr__()
+    def discover(self):
+        if len(self) >= 3:
+            return 'Meteor'
         else:
-            print('Its not a Meteor')
+            return 'Its not a Meteor'
 
 
 class LunarDebris(IdentifyImage):
     def __repr__(self):
-        print(f'Its a Lunar Debris')
+        return 'Its a Lunar Debris'
 
-    def discover(self, data):
-        IdentifyImage.__init__(self, data)
-        size = IdentifyImage.__len__(self)
-
-        if size == 2:
-            self.__repr__()
+    def discover(self):
+        if len(self) == 2:
+            return 'Lunar Debris'
         else:
-            print('Its not a Lunar Debris')
+            return 'Its not a Lunar Debris'
 
 
 class MinimalObject(IdentifyImage):
     def __repr__(self):
-        print(f'Its a Minimal Object in space')
+        return 'Its a Minimal Object in space'
 
-    def discover(self, data):
-        IdentifyImage.__init__(self, data)
-        size = IdentifyImage.__len__(self)
-
-        if size == 1:
-            self.__repr__()
+    def discover(self):
+        if len(self) <= 1:
+            return 'Minimal Object'
         else:
-            print('Nothing Relevant')
+            return 'Nothing Relevant'
 
 
-polymorphism_data_1 = Meteor(data_value)
-polymorphism_data_2 = LunarDebris(data_value)
-polymorphism_data_3 = LunarDebris(data_value)
+polymorphism_loop = [Meteor(data_value), LunarDebris(data_value), MinimalObject(data_value)]
 
-polymorphism_data_1.discover(data=data_value)
-polymorphism_data_2.discover(data=data_value)
-polymorphism_data_3.discover(data=data_value)
+list_object = []
+for o in polymorphism_loop:
+    o.discover()
+    list_object.append(o)
+
+print(list_object)
 
 # Abstraction
+#class GettingObjectResponse():
 
 
 # Encapsulation (Public, Protected, Private)
