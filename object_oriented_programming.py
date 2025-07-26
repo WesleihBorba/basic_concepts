@@ -19,15 +19,14 @@ class IdentifyImage:
 
 class TransformData(IdentifyImage):
     def resize_image(self):
-        print(self.image)
         self.image = np.resize(self.image, (3, 4))
         print(self.image)
 
 
 class AnalyzeImage(TransformData):
     def analyze(self):
-        TransformData.resize_image(self)
-        size_image = TransformData.__len__(self)
+        self.resize_image()
+        size_image = len(self)
         print(size_image)
 
 
@@ -100,7 +99,18 @@ class WhatWillHappen(GettingObjectResponse):
                 break
 
 
-trying = WhatWillHappen(list_object)
-trying.world_response()
+testing = WhatWillHappen(list_object)
+testing.world_response()
+
 
 # Encapsulation (Public, Protected, Private)
+# Just one example (but we won't elaborate on anything relevant)
+class Names:
+    def __init__(self):
+        self.id = None
+        # Write your code below
+        self._id = 0
+        self.__id = 1
+
+
+e = Names()
