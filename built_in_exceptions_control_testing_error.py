@@ -134,3 +134,71 @@ class TestTimesTen(unittest.TestCase):
 # Run the tests
 unittest.main()
 
+# Assert Methods III: Exception and Warning Methods
+
+import warnings
+
+class PowerError(Exception):
+    pass
+
+class WaterLevelWarning(Warning):
+    pass
+
+def power_outage_detected(outage_detected):
+    if outage_detected:
+        raise PowerError('A power outage has been detected somewhere in the system')
+    else:
+        print('All systems receiving power')
+
+def water_levels_check(liters):
+    if liters < 200:
+        warnings.warn('Water levels have fallen below 200 liters', WaterLevelWarning)
+    else:
+        print('Water levels are adequate')
+
+
+import unittest
+import alerts
+
+
+# Write your code here:
+class SystemAlertTests(unittest.TestCase):
+    def test_power_outage_alert(self):
+        self.assertRaises(alerts.PowerError, alerts.power_outage_detected, True)
+
+    def test_water_levels_warning(self):
+        self.assertWarns(alerts.WaterLevelWarning, alerts.water_levels_check, 150)
+
+
+unittest.main()
+
+
+# Test Fixtures
+
+import unittest
+import kiosk
+
+
+class CheckInKioskTests(unittest.TestCase):
+
+    def test_check_in_with_flight_number(self):
+        print('Testing the check-in process based on flight number')
+
+    def test_check_in_with_passport(self):
+        print('Testing the check-in process based on passport')
+
+    # Write your code below:
+    @classmethod
+    def setUpClass(cls):
+        kiosk.power_on_kiosk()
+
+    @classmethod
+    def tearDownClass(cls):
+        kiosk.power_off_kiosk()
+
+    def setUp(self):
+        kiosk.return_to_welcome_page()
+
+
+unittest.main()
+
