@@ -1,5 +1,46 @@
-# DEFINE THE GOALS MAYBE CLUSTER
+# We will provoke errors using Logistic regression
 import unittest
+from sklearn.datasets import load_breast_cancer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score,classification_report,confusion_matrix,ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+cancer_data = load_breast_cancer()
+X, y = cancer_data.data, cancer_data.target
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Create a logistic regression model
+model = LogisticRegression()
+
+# Fit the model to the training data
+model.fit(X_train_scaled, y_train)
+
+# Make predictions on the test data, to test the model
+y_prediction = model.predict(X_test_scaled)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_prediction)
+classification_report = classification_report(y_test,y_prediction)
+print(f'accuracy score: {accuracy}')
+print(f'Classification report : \n  {classification_report}')
+
+exit()
+# Creating a class to build logistic regression
+class LogisticRegressionAnalysis:
+    def __init__(self, x_data, y_data):
+        self.x_data = x_data
+        self.y_data = y_data
+
+
+# Testing Number of classes
 
 # Raise error:
 def open_register(employee_status):
@@ -176,7 +217,7 @@ unittest.main()
 # Test Fixtures
 
 import unittest
-import kiosk
+#import kiosk
 
 
 class CheckInKioskTests(unittest.TestCase):
@@ -190,14 +231,17 @@ class CheckInKioskTests(unittest.TestCase):
     # Write your code below:
     @classmethod
     def setUpClass(cls):
-        kiosk.power_on_kiosk()
+        pass
+        #kiosk.power_on_kiosk()
 
     @classmethod
     def tearDownClass(cls):
-        kiosk.power_off_kiosk()
+        pass
+        #kiosk.power_off_kiosk()
 
     def setUp(self):
-        kiosk.return_to_welcome_page()
+        pass
+        #kiosk.return_to_welcome_page()
 
 
 unittest.main()
