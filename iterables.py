@@ -24,4 +24,8 @@ iterable_counter = IterableBigData(sku_list)
 for i in iterable_counter:
     print(i)
 
-# PAREI AQUI: Input-Dependent Iterator: Chain
+# PAREI AQUI: Generator Methods: send()
+# yield
+# next()
+# Generator comprehension - Need to use loop to access
+a_generator = (i*i for i in range(4))
