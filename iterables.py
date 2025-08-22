@@ -1,5 +1,4 @@
 # Iterable in big data
-import itertools
 from sklearn.datasets import load_iris
 import numpy as np
 
