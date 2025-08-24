@@ -1,4 +1,6 @@
 # PENSAR NO OBJETIVO, TALVEZ EM COMO GERENCIAR UM ARQUIVO GRANDE OU ALGO DO TIPO
+from contextlib import contextmanager
+
 
 class WorkWithFile:
     def __init__(self, file, mode):
@@ -19,4 +21,20 @@ class WorkWithFile:
 with WorkWithFile("file.txt", "r") as file:
   print(file.read())
 
-# Parei aqui: Handling Exceptions II
+
+@contextmanager
+def open_file_contextlib(file, mode):
+    open_file = open(file, mode)
+
+    try:
+        yield open_file
+
+    # Exception Handling
+    except Exception as exception:
+        print('We hit an error: ' + str(exception))
+
+    finally:
+        open_file.close()
+
+with open_file_contextlib('file.txt', 'w') as opened_file:
+    opened_file.sign('We just made a context manager using contexlib')
