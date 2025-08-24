@@ -9,8 +9,12 @@ class WorkWithFile:
         self.opened_file = open(self.file, self.mode)
         return self.opened_file
 
-    def __exit__(self, *exc): #exc_type, exc_val, traceback
+    def __exit__(self, exc_type, exc_val, traceback):
         self.opened_file.close()
+        if isinstance(exc_val, TypeError):
+            # Handle TypeError here...
+            print("The exception has been handled")
+            return True
 
 with WorkWithFile("file.txt", "r") as file:
   print(file.read())
