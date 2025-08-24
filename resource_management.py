@@ -1,10 +1,11 @@
-# PENSAR NO OBJETIVO, TALVEZ EM COMO GERENCIAR UM ARQUIVO GRANDE OU ALGO DO TIPO
+# Two ways to read Big Data.
+# Preventing resource leaks, Preventing crashes, Decreasing the vulnerability of our data on Computer
 from contextlib import contextmanager
 
 
 class WorkWithFile:
-    def __init__(self, file, mode):
-        self.file = file
+    def __init__(self, file_name, mode):
+        self.file = file_name
         self.mode = mode
 
     def __enter__(self):
@@ -18,13 +19,15 @@ class WorkWithFile:
             print("The exception has been handled")
             return True
 
-with WorkWithFile("file.txt", "r") as file:
-  print(file.read())
+
+with WorkWithFile("big_data_1.txt", "r") as file:
+    print(file.read())
 
 
+# Doing with a library and exception. We can read more than two files
 @contextmanager
-def open_file_contextlib(file, mode):
-    open_file = open(file, mode)
+def open_file_context_lib(file_name, mode):
+    open_file = open(file_name, mode)
 
     try:
         yield open_file
@@ -36,5 +39,6 @@ def open_file_contextlib(file, mode):
     finally:
         open_file.close()
 
-with open_file_contextlib('file.txt', 'w') as opened_file:
-    opened_file.sign('We just made a context manager using contexlib')
+
+with open_file_context_lib('big_data_2.txt', 'w') as opened_file:
+    opened_file.sign('We just made a context manager using contex_lib')
