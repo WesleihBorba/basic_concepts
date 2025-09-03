@@ -17,4 +17,12 @@ logger.info("Converting from {from_country} to USD: {converted_to_usd}".format(f
                                                                      converted_to_usd='converted_to_usd'))
 logger.debug("Current rates: {exchange_rates}".format(exchange_rates='exchange_rates'))
 logger.error("The TO country supplied is not a valid country.")
+logger.log(logging.CRITICAL, 'Test critical')
+logger.log(logging.INFO, "Test")
+logger.warning('Values')
+logger.setLevel(logging.DEBUG)
+
+file_handler = logging.FileHandler("my_program.log")
+logger.addHandler(file_handler)
+
 sys.exit(0)
