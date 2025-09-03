@@ -2,7 +2,7 @@
 import logging
 import sys
 
-# PAREI AQUI: Introduction to Logging
+# PAREI AQUI: Logging Errors and Messages
 
 logger = logging.getLogger(__name__)
 stream_handler = logging.StreamHandler(sys.stdout)
