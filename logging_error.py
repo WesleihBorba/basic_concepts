@@ -2,13 +2,21 @@
 import logging
 import sys
 
-# PAREI AQUI: Logging Errors and Messages
-
+# Logger setting
 logger = logging.getLogger(__name__)
 stream_handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(message)s]')
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+logger.setLevel(logging.INFO)
+
+# TRAINING LOGS
+
+
+# EVALUATION LOGS
+# PREDICTIONS LOGS
+# SYSTEM LOGS (CPU AND MEMORY USAGE)
+
 print(logger.addHandler(stream_handler))
 
 logger.setLevel(logging.DEBUG)
