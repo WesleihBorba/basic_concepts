@@ -2,78 +2,85 @@
 import logging
 import sys
 from sklearn import datasets, linear_model
-import numpy as np
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error
+import psutil
 
 
 # Logger setting
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Get everything
+
+# Handler to console
 stream_handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(message)s]')
+stream_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
-logger.setLevel(logging.INFO)
+
+# Handler to file
+file_handler = logging.FileHandler("ml_pipeline.log")
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 
 # Class cluster
 class DiabeticCluster:
     def __init__(self):
+        logger.info("Load the data")
         self.diabetes_X, self.diabetes_y = datasets.load_diabetes(return_X_y=True)
-        self.y_train = []
-        self.y_test = []
-        self.X_train = []
-        self.X_test = []
-        self.regression = []
+        self.y_train, self.y_test = None, None
+        self.X_train, self.X_test = None, None
+        self.regression = None
+        self.predict_y = None
 
     def create_data(self):
-        # Split the data into training/testing sets
+        logger.info("Divide train and test")
         self.X_train = self.diabetes_X[:-20]
         self.X_test = self.diabetes_X[-20:]
 
-        # Split the targets into training/testing sets
         self.y_train = self.diabetes_y[:-20]
         self.y_test = self.diabetes_y[-20:]
+        logger.debug(f"Shapes - X_train: {self.X_train.shape}, X_test: {self.X_test.shape}")
 
     def train(self):
-        # Create linear regression object
-        self.regression = linear_model.LinearRegression()
+        logger.info("Starting train to model")
+        try:
+            self.regression = linear_model.LinearRegression()
+            self.regression.fit(self.X_train, self.y_train)
+            logger.info("Success!")
+        except Exception as e:
+            logger.error(f"Fail to training: {e}")
 
-        # Train the model using the training sets
-        self.regression.fit(self.X_train, self.y_train)
+    def predict(self):
+        logger.info("Predict X test")
 
-    def predict(regr, X_test):
-        # Make predictions using the testing set
-        diabetes_y_pred = regr.predict(X_test)
+        if self.regression is None:
+            logger.error("Model wasn't training!")
+            return
+        self.predict_y = self.regression.predict(self.X_test)
+        logger.debug(f"Predictions: {self.predict_y[:5]}")
 
-        return diabetes_y_pred
+    def eval(self):
+        logger.info("Evaluating Model...")
+        if self.predict_y is None:
+            logger.error("Any predictions find to evaluating!")
+            return
+        mse = mean_squared_error(self.y_test, self.predict_y)
+        logger.info(f"Mean Squared Error (MSE): {mse:.4f}")
+        return mse
 
-    def eval(y, y_hat):
-        return mean_squared_error(y, y_hat)
+    @staticmethod
+    def system_logs():
+        cpu_usage = psutil.cpu_percent()
+        memory_usage = psutil.virtual_memory().percent
+        logger.info(f"System used: CPU={cpu_usage}%, RAM={memory_usage}%")
 
-# https://medium.com/@dKimothi/finding-best-features-for-predicting-diabetes-8656cf0d1185
 
-# TRAINING LOGS
-
-
-# EVALUATION LOGS
-# PREDICTIONS LOGS
-# SYSTEM LOGS (CPU AND MEMORY USAGE)
-
-print(logger.addHandler(stream_handler))
-
-logger.setLevel(logging.DEBUG)
-
-logger.info("Converting from {from_country} to USD: {converted_to_usd}".format(from_country='from_country',
-                                                                     converted_to_usd='converted_to_usd'))
-logger.debug("Current rates: {exchange_rates}".format(exchange_rates='exchange_rates'))
-logger.error("The TO country supplied is not a valid country.")
-logger.log(logging.CRITICAL, 'Test critical')
-logger.log(logging.INFO, "Test")
-logger.warning('Values')
-logger.setLevel(logging.DEBUG)
-
-file_handler = logging.FileHandler("my_program.log")
-logger.addHandler(file_handler)
-
-sys.exit(0)
+if __name__ == "__main__":
+    class_diabetic = DiabeticCluster()
+    class_diabetic.create_data()
+    class_diabetic.train()
+    class_diabetic.predict()
+    class_diabetic.eval()
+    class_diabetic.system_logs()
