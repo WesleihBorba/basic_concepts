@@ -8,7 +8,7 @@ import psutil
 
 # Logger setting
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Get everything
+logger.setLevel(logging.DEBUG)  # Console will show everything
 
 # Handler to console
 stream_handler = logging.StreamHandler(sys.stdout)
@@ -19,7 +19,7 @@ logger.addHandler(stream_handler)
 
 # Handler to file
 file_handler = logging.FileHandler("ml_pipeline.log")
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.DEBUG)  # File will register important information
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
