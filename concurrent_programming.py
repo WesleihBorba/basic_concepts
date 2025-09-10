@@ -1,0 +1,7 @@
+# Goal:
+
+# Concurrency
+
+# Parallelism
+
+# asynchronous
