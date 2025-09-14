@@ -1,4 +1,4 @@
-# Goal:
+# Goal: Running using three types of current programming and looking the results
 import threading
 import time
 import asyncio
