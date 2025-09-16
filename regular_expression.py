@@ -1,43 +1,50 @@
-# Goal: Read any files with regular expression
+# Goal: Read files and extract information with regular expression
 import logging
+import sys
 import re
+import pandas as pd
+
+# Logger setting
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Console will show everything
+
+# Handler to console
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 
 class ReadingFiles:
 
     def __init__(self):
-        self.local_file = ('C:\\Users\\Weslei\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
-                           'Fases da vida\\Fase I\\Repository Projects\\files')
+        self.local_file = ('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
+                           'Fases da vida\\Fase I\\Repository Projects\\files\\')
 
-    def read_data(self):
-        pass
+    def read_data(self, file, separation):
+        logger.info('Reading a file')
+        data = pd.read_csv(f'{self.local_file}{file}', sep=separation)
+        return data
 
     def regex_shorthland(self):
         texto = "Olá, mundo! 12345 ABC def."
 
-        # Encontrar todos os dígitos
-        digitos = re.findall(r'\d', texto)
-        print("Dígitos:", digitos)
+        logger.info('Find every number in CSV')
+        file_1 = self.read_data('file_1.csv', separation=';')
+        numbers = file_1.dropna().map(lambda x: re.findall(r"\d+", x))
+        numbers_list = [num for sublist in numbers.values.flatten() for num in sublist]
+        logger.info(f"Numbers: {numbers_list}")
 
-        # Encontrar todos os caracteres que não são dígitos
-        nao_digitos = re.findall(r'\D', texto)
-        print("Não dígitos:", nao_digitos)
+        logger.info('All text in that file')
+        text = file_1.dropna().map(lambda x: re.findall(r"\D+", x))
+        text_list = [num for sublist in text.values.flatten() for num in sublist]
+        logger.info(f"Texts: {text_list}")
 
-        # Encontrar todos os caracteres de palavra
-        palavras = re.findall(r'\w', texto)
-        print("Palavras:", palavras)
-
-        # Encontrar todos os caracteres que não são de palavra
-        nao_palavras = re.findall(r'\W', texto)
-        print("Não palavras:", nao_palavras)
-
-        # Encontrar todos os espaços em branco
-        espacos = re.findall(r'\s', texto)
-        print("Espaços em branco:", espacos)
-
-        # Encontrar todos os caracteres que não são espaços em branco
-        nao_espacos = re.findall(r'\S', texto)
-        print("Não espaços em branco:", nao_espacos)
+        logger.info('All characters but it is not a word')
+        characters = file_1.dropna().map(lambda x: re.findall(r"\W+", x))
+        characters_list = [num for sublist in characters.values.flatten() for num in sublist]
+        logger.info(f"Not Words: {characters_list}")
 
     def regex_grouping(self):
         # String de exemplo
@@ -110,5 +117,4 @@ class ReadingFiles:
         verificar_textos(textos)
 
 
-
-# PAREI AQUI: Grouping
+ReadingFiles().regex_shorthland()
