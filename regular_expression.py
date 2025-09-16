@@ -27,11 +27,10 @@ class ReadingFiles:
         data = pd.read_csv(f'{self.local_file}{file}', sep=separation)
         return data
 
-    def regex_shorthland(self):
-        texto = "Olá, mundo! 12345 ABC def."
+    def regex_shorthand(self):
+        file_1 = self.read_data('file_1.csv', separation=';')
 
         logger.info('Find every number in CSV')
-        file_1 = self.read_data('file_1.csv', separation=';')
         numbers = file_1.dropna().map(lambda x: re.findall(r"\d+", x))
         numbers_list = [num for sublist in numbers.values.flatten() for num in sublist]
         logger.info(f"Numbers: {numbers_list}")
@@ -46,28 +45,32 @@ class ReadingFiles:
         characters_list = [num for sublist in characters.values.flatten() for num in sublist]
         logger.info(f"Not Words: {characters_list}")
 
-    def regex_grouping(self):
-        # String de exemplo
-        texto = "A conferência será realizada no dia 25/06/2024 em São Paulo."
+    @staticmethod
+    def regex_grouping():
+        pattern_day = r"(\d{2})/(\d{2})/(\d{4})"
+        pattern_place = r"in\s+([A-Za-z]+)"
+        meeting_text = "The conference will be 25/06/2025 in London"
 
-        # Padrão de expressão regular com agrupamento para dia, mês e ano
-        padrao = r"(\d{2})/(\d{2})/(\d{4})"
+        logger.info('Find the day that we will occur our meeting, grouping per day, month and year')
+        results = re.search(pattern_day, meeting_text)
+        if results:
+            day = results.group(1)
+            month = results.group(2)
+            year = results.group(3)
 
-        # Procurando o padrão na string
-        resultado = re.search(padrao, texto)
-
-        if resultado:
-            # Usando grupos para capturar dia, mês e ano
-            dia = resultado.group(1)
-            mes = resultado.group(2)
-            ano = resultado.group(3)
-
-            print(f"Dia: {dia}")
-            print(f"Mês: {mes}")
-            print(f"Ano: {ano}")
+            logger.info(f"day: {day}")
+            logger.info(f"Month: {month}")
+            logger.info(f"Year: {year}")
         else:
-            print("Data não encontrada na string.")
+            logger.info("There is no meeting")
 
+        logger.info("Find a place will occur our meeting")
+        place_result = re.search(pattern_place, meeting_text)
+        if place_result:
+            place = place_result.group(1)
+            logger.info(f"Place: {place}")
+        else:
+            logger.info("There is no meeting")
 
     def regex_quantifiers(self):
         # Texto de exemplo
@@ -117,4 +120,6 @@ class ReadingFiles:
         verificar_textos(textos)
 
 
-ReadingFiles().regex_shorthland()
+#ReadingFiles().regex_shorthand()
+#ReadingFiles().regex_grouping()
+ReadingFiles().regex_quantifiers()
