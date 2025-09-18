@@ -3,6 +3,7 @@ import logging
 import sys
 import re
 import pandas as pd
+import glob
 
 # Logger setting
 logger = logging.getLogger(__name__)
@@ -87,32 +88,30 @@ class ReadingFiles:
         for (line, columns), valor in matches.items():
             logger.info(f"Descriptions: {file_2.loc[line, 'account']}, {columns}, {valor}")
 
-    def regex_anchors(self):
-        # Exemplo de texto
-        textos = [
-            "Olá, Mundo!",
-            "Olá a todos!",
-            "Mundo, Olá!",
-            "Boa tarde, Mundo!",
-            "Olá, Mundo"
-        ]
+    def regex_read_all_data(self):
+        logger.info('Reading all files')
+        files = glob.glob(f'{self.local_file}*.csv')
 
-        # Expressão regular com âncoras
-        pattern = r"^Olá.*Mundo$"
+        dataframes = []
 
-        # Função para verificar os textos
-        def verificar_textos(textos):
-            for texto in textos:
-                if re.match(pattern, texto):
-                    print(f"'{texto}' combina com a expressão '{pattern}'")
-                else:
-                    print(f"'{texto}' NÃO combina com a expressão '{pattern}'")
+        for f in files:
+            try:
+                df = pd.read_csv(f, sep=";")
+                logger.info(f"Success using sep ; -> {f}")
+            except Exception as e1:
+                logger.info(f'Error {e1}')
+                try:
+                    df = pd.read_csv(f, sep=",")
+                    logger.info(f"Success -> {f}")
+                except Exception as e2:
+                    logger.error(f"Error to read {f} with both separations: {e2}")
+                    df = None
 
-        # Chamar a função para verificar os textos
-        verificar_textos(textos)
+            if df is not None:
+                dataframes.append(df)
 
 
-#ReadingFiles().regex_shorthand()
-#ReadingFiles().regex_grouping()
-#ReadingFiles().regex_quantifiers()
-ReadingFiles().regex_anchors()
+ReadingFiles().regex_shorthand()
+ReadingFiles().regex_grouping()
+ReadingFiles().regex_quantifiers()
+ReadingFiles().regex_read_all_data()
