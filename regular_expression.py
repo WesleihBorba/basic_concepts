@@ -73,27 +73,19 @@ class ReadingFiles:
             logger.info("There is no meeting")
 
     def regex_quantifiers(self):
-        # Texto de exemplo
-        texto = "O preço é $100, $20, e $5."
+        file_2 = self.read_data('file_2.csv', separation=';')
 
-        # Padrão para encontrar preços (um cifrão seguido de um ou mais dígitos)
-        padrao_mais = r'\$\d+'
+        logger.info('Find all values with 6 digits')
+        stacked = file_2.drop(columns="account").stack()
+        numbers_above_6_digits = stacked.map(
+            lambda x: re.findall(r'\b\d{6}\b', str(int(float(x)))) if pd.notna(x) else []
+        )
 
-        # Padrão para encontrar números com pelo menos 2 dígitos
-        padrao_min_dois = r'\b\d{2,}\b'
+        # Getting index
+        matches = numbers_above_6_digits[numbers_above_6_digits.map(len) > 0]
 
-        # Padrão para encontrar números com exatamente 3 dígitos
-        padrao_tres = r'\b\d{3}\b'
-
-        # Encontrar todos os padrões no texto
-        precos = re.findall(padrao_mais, texto)
-        numeros_min_dois = re.findall(padrao_min_dois, texto)
-        numeros_tres = re.findall(padrao_tres, texto)
-
-        print("Preços encontrados:", precos)
-        print("Números com pelo menos 2 dígitos:", numeros_min_dois)
-        print("Números com exatamente 3 dígitos:", numeros_tres)
-
+        for (line, columns), valor in matches.items():
+            logger.info(f"Descriptions: {file_2.loc[line, 'account']}, {columns}, {valor}")
 
     def regex_anchors(self):
         # Exemplo de texto
@@ -122,4 +114,5 @@ class ReadingFiles:
 
 #ReadingFiles().regex_shorthand()
 #ReadingFiles().regex_grouping()
-ReadingFiles().regex_quantifiers()
+#ReadingFiles().regex_quantifiers()
+ReadingFiles().regex_anchors()
