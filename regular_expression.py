@@ -20,8 +20,7 @@ logger.addHandler(stream_handler)
 class ReadingFiles:
 
     def __init__(self):
-        self.local_file = ('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
-                           'Fases da vida\\Fase I\\Repository Projects\\files\\')
+        self.local_file = 'local\\files\\'
 
     def read_data(self, file, separation):
         logger.info('Reading a file')
