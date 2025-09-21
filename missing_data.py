@@ -12,4 +12,7 @@ class MissingData:
 
 
 
+    def drop(self):
+        self.data_missing.dropna(inplace=True)
+
 # PAREI AQUI: Missing at Random (MAR)
