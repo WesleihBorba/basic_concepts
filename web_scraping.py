@@ -1,39 +1,26 @@
 # Goal: Getting data on internet
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 
 
 class WebScraping:
 
     def __init__(self):
-        self.link = None
+        self.stock = 'AAPL'
+        self.link = f'https://finance.yahoo.com/quote/{self.stock}/'
+        self.headers = {"User-Agent": "Mozilla/5.0"}
+
+    def getting_information(self):
+        response = requests.get(self.link, headers=self.headers)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Price of Stock
+        price_tag = soup.find("fin-streamer", {"data-field": "regularMarketPrice"})
+        print("Actual Price:", price_tag.text if price_tag else "Not Find")
+
+        market_cap = soup.find("fin-streamer", {"data-field": "marketCap"})
+        print("Market Cap:", market_cap.text if market_cap else "Not Find")
 
 
-prefix = "https://content.codecademy.com/courses/beautifulsoup/"
-webpage_response = requests.get('https://content.codecademy.com/courses/beautifulsoup/shellter.html')
-
-webpage = webpage_response.content
-soup = BeautifulSoup(webpage, "html.parser")
-
-turtle_links = soup.find_all("a")
-links = []
-# go through all of the a tags and get the links associated with them"
-for a in turtle_links:
-    links.append(prefix + a["href"])
-
-# Define turtle_data:
-turtle_data = {}
-
-# follow each link:
-for link in links:
-    webpage = requests.get(link)
-    turtle = BeautifulSoup(webpage.content, "html.parser")
-    turtle_name = turtle.select(".name")[0].get_text()
-
-    stats = turtle.find("ul")
-    stats_text = stats.get_text("|")
-    turtle_data[turtle_name] = stats_text.split("|")
-
-turtle_df = pd.DataFrame(turtle_data)
-print(turtle_df)
+class_scraping = WebScraping()
+class_scraping.getting_information()
