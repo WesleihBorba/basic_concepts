@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import patsy
 
 # Introduction to Linear Regression with sklearn and gradient
 students = pd.read_csv('test_data.csv')
@@ -21,11 +22,15 @@ plt.show()
 plt.scatter(fitted_values, residuals)
 plt.show()
 
-# PAREI AQUI: Categorical Predictors a binary values and plot
-
 
 
 
 # Linear Regression with a Categorical Predictor
+
+y, X = patsy.dmatrices('rent ~ borough', rentals)  #  SE EU CONSIGO USAR ISSO
+
+
+
+
 
 # Matrix Representation of Linear Regression: Understand the math and new libraries
