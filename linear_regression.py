@@ -29,8 +29,3 @@ plt.show()
 
 y, X = patsy.dmatrices('rent ~ borough', rentals)  #  SE EU CONSIGO USAR ISSO
 
-
-
-
-# PRÓXIMO:
-# Matrix Representation of Linear Regression: Understand the math and new libraries
