@@ -104,8 +104,6 @@ class LinearRegression:
     def plot_linear_regression(self):
         pass
 
-# https://medium.com/@vaibhavkhamitkar12/assumptions-of-linear-regression-a-journey-into-the-world-of-predictive-4a397ed2abf2
-
 
 class_regression = LinearRegression()
 # LinearRegression().linearity_assumption()
@@ -119,12 +117,4 @@ class_regression.homoscedasticity()
 
 exit()
 
-
-
-# Fazer a mesma coisa normality and homoscedasticity - TRY AND EXCEPT - TENHO NO NOTE DO TRABALHO
-plt.hist(residuals)
-plt.show()
-
-plt.scatter(fitted_values, residuals)
-plt.show()
 
