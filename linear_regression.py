@@ -87,19 +87,16 @@ class LinearRegression:
             return
 
     def normality_of_residuals(self):
-        plt.hist(model.resid, bins=30, edgecolor='black')
-        plt.title("Histograma dos resíduos")
-        plt.xlabel("Resíduo")
-        plt.ylabel("Frequência")
-        plt.show()
+        logger.info("Resid of our model need to follow a normal distribution")
 
-        stat, p_value = shapiro(model.resid)
-        print(f"Estatística: {stat:.4f}, p-valor: {p_value:.4f}")
+        stat, p_value = shapiro(self.resid)
+        logger.info(f"Stats: {stat:.4f}, p-valor: {p_value:.4f}")
 
         if p_value > 0.05:
-            print("✅ Os resíduos parecem seguir distribuição normal (não rejeita H0).")
+            logger.debug("Our model follow a normal distribution")
         else:
-            print("❌ Evidência de que os resíduos não são normais (rejeita H0).")
+            logger.debug("We will need to adjust our model")
+            return
 
     def summary(self):
         pass
