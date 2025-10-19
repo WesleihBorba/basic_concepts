@@ -1,6 +1,8 @@
 # Goal:
 import pandas as pd
 import statsmodels.api as sm
+from statsmodels.stats.diagnostic import het_breuschpagan
+from scipy.stats import shapiro
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import logging
@@ -13,7 +15,6 @@ logger.setLevel(logging.DEBUG)  # Console will show everything
 
 # Handler to console
 stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
@@ -23,6 +24,7 @@ class LinearRegression:
     def __init__(self):
         self.train, self.test = None, None
         self.predict_values, self.fit_regression = None, None
+        self.resid = None
 
         self.X, self.y = make_regression(
             n_samples=15000,
@@ -35,43 +37,69 @@ class LinearRegression:
             "income": self.y
         })
 
+    def linearity_assumption(self):
+        logger.info("A single predictor variable need to have straight-line relationship with the dependent variable")
+        plt.scatter(self.X, self.y)
+        plt.xlabel("Education")
+        plt.ylabel("Income")
+        plt.title("Linearity Assumption")
+        plt.show()
+
     def train_test(self):
         logger.info("Divide train and test")
-        self.train, self.test = train_test_split(self.data['education'], self.data['income'], test_size=0.3,
+        self.train, self.test = train_test_split(self.data, test_size=0.3,
                                                  random_state=42)
+        logger.debug(f"Shapes - test: {self.test.shape}, train: {self.train.shape}")
 
     def fit_model(self):
         logger.info('Starting to fit our regression')
+        try:
+            model = sm.OLS.from_formula('income ~ education', data=self.train)
+            self.fit_regression = model.fit()
+            logger.info("Success!")
+        except Exception as e:
+            logger.error(f"Fail to training: {e}")
 
-        model = sm.OLS.from_formula('income ~ education', data=self.data)
-        self.fit_regression = model.fit()
-        print(self.fit_regression.predict(self.data))
-        exit()
         logger.info(f"Coefficients: {self.fit_regression.params}")
 
     def predict_model(self):
-        self.predict_values = self.fit_regression.predict(self.data)
-        print(self.predict_values)
-        #logger.info('')
+        logger.info('Predict Test Data')
+        self.predict_values = self.fit_regression.predict(self.test)
+        self.resid = self.test['income'] - self.predict_values
 
+    def homoscedasticity(self):
+        logger.info("Homoscedasticity assumption")
 
-    def durbin_resid(self):
-        exit()
-        residuals = self.data.income - self.fit_regression
-        dw_stat = durbin_watson(resid)
-        print("Rule1: A value around 2 suggests no autocorrelation. - PERFECT",
-              "Rule2: Values substantially less than 2 indicate positive autocorrelation.",
-              "Rule3: Values much greater than 2 near to 4 suggest negative autocorrelation.")
+        exog = sm.add_constant(self.test[['education']])
+        bp_test = het_breuschpagan(self.resid, exog)
+        labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
+        result = dict(zip(labels, bp_test))
 
-        print('Durbin-Watson', dw_stat)
-        print("If ACF don't show repetitive patterns then it'll correct")
-        plot_acf(resid)
-
-
+        logger.info('Plot of resid')
+        plt.hist(self.resid)
         plt.show()
-    # Criar regra (def) para ver se a assumption residuals passa como um modelo bom usando também try and excpt
 
+        if result['LM-Test p-value'] >= 0.05:
+            logger.debug('the dispersion of data around the mean is similar in all groups or for all values of the '
+                         'predictor variable')
+        else:
+            logger.error("the model contains Heteroscedasticity")
+            return
 
+    def normality_of_residuals(self):
+        plt.hist(model.resid, bins=30, edgecolor='black')
+        plt.title("Histograma dos resíduos")
+        plt.xlabel("Resíduo")
+        plt.ylabel("Frequência")
+        plt.show()
+
+        stat, p_value = shapiro(model.resid)
+        print(f"Estatística: {stat:.4f}, p-valor: {p_value:.4f}")
+
+        if p_value > 0.05:
+            print("✅ Os resíduos parecem seguir distribuição normal (não rejeita H0).")
+        else:
+            print("❌ Evidência de que os resíduos não são normais (rejeita H0).")
 
     def summary(self):
         pass
@@ -81,11 +109,15 @@ class LinearRegression:
 
 # https://medium.com/@vaibhavkhamitkar12/assumptions-of-linear-regression-a-journey-into-the-world-of-predictive-4a397ed2abf2
 
-LinearRegression().fit_model()
-#LinearRegression().predict_model()
 
+class_regression = LinearRegression()
+# LinearRegression().linearity_assumption()
+class_regression.train_test()
+class_regression.fit_model()
+class_regression.predict_model()
+class_regression.homoscedasticity()
 
-
+# VER COM BASE NO EMAIL QUE EU ENVIEI SE TEM ALGO A MAIS PARA SER USADO
 
 
 exit()
