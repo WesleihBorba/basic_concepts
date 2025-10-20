@@ -1,8 +1,9 @@
-# Goal:
+# Goal: Understanding Assumption of regression and predict X test
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
 from scipy.stats import shapiro
+from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 import logging
@@ -64,7 +65,7 @@ class LinearRegression:
 
     def predict_model(self):
         logger.info('Predict Test Data')
-        self.predict_values = self.fit_regression.predict(self.test)
+        self.predict_values = self.fit_regression.predict(self.test['education'])
         self.resid = self.test['income'] - self.predict_values
 
     def homoscedasticity(self):
@@ -80,8 +81,8 @@ class LinearRegression:
         plt.show()
 
         if result['LM-Test p-value'] >= 0.05:
-            logger.debug('the dispersion of data around the mean is similar in all groups or for all values of the '
-                         'predictor variable')
+            logger.debug(f'the dispersion of data around the mean is similar in all groups or for all values of the '
+                         'predictor variable: {result}')
         else:
             logger.error("the model contains Heteroscedasticity")
             return
@@ -98,11 +99,32 @@ class LinearRegression:
             logger.debug("We will need to adjust our model")
             return
 
-    def summary(self):
-        pass
+    def evaluating_model(self):
+        logger.info("Looking if our model is good to use")
+        mse = mean_squared_error(self.test['income'], self.predict_values)
+        r2 = r2_score(self.test['income'], self.predict_values)
+
+        logger.info(f'Mean Squared Error: {mse}')
+        logger.info(f'R-squared: {r2}')
 
     def plot_linear_regression(self):
-        pass
+        sample = self.test.sample(50)  # 50 random points
+        y_true = sample['income']
+        y_predict = self.fit_regression.predict(sample['education'])
+
+        plt.scatter(y_true, y_predict, alpha=0.7)
+        plt.plot([y_true.min(), y_true.max()],
+                 [y_true.min(), y_true.max()],
+                 'r--', label='Correct line')
+
+        for i in range(len(sample)):
+            plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
+
+        plt.xlabel('Real value (income)')
+        plt.ylabel('Predict value (income)')
+        plt.title('Comparison between actual and predicted values (with errors)')
+        plt.legend()
+        plt.show()
 
 
 class_regression = LinearRegression()
@@ -111,6 +133,8 @@ class_regression.train_test()
 class_regression.fit_model()
 class_regression.predict_model()
 class_regression.homoscedasticity()
+class_regression.evaluating_model()
+class_regression.plot_linear_regression()
 
 # VER COM BASE NO EMAIL QUE EU ENVIEI SE TEM ALGO A MAIS PARA SER USADO
 
