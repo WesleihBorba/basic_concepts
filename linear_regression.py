@@ -81,8 +81,8 @@ class LinearRegression:
         plt.show()
 
         if result['LM-Test p-value'] >= 0.05:
-            logger.debug(f'the dispersion of data around the mean is similar in all groups or for all values of the '
-                         'predictor variable: {result}')
+            logger.debug(f'the dispersion of errors around the regression line should be similar across the range of '
+                         f'values of the predictor variable {result}')
         else:
             logger.error("the model contains Heteroscedasticity")
             return
@@ -128,17 +128,10 @@ class LinearRegression:
 
 
 class_regression = LinearRegression()
-# LinearRegression().linearity_assumption()
+class_regression.linearity_assumption()
 class_regression.train_test()
 class_regression.fit_model()
 class_regression.predict_model()
 class_regression.homoscedasticity()
 class_regression.evaluating_model()
 class_regression.plot_linear_regression()
-
-# VER COM BASE NO EMAIL QUE EU ENVIEI SE TEM ALGO A MAIS PARA SER USADO
-
-
-exit()
-
-
