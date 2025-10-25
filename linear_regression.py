@@ -71,13 +71,16 @@ class LinearRegression:
     def homoscedasticity(self):
         logger.info("Homoscedasticity assumption")
 
-        exog = sm.add_constant(self.test[['education']])
+        exog = sm.add_constant(self.test[['income']])
         bp_test = het_breuschpagan(self.resid, exog)
         labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
         result = dict(zip(labels, bp_test))
 
         logger.info('Plot of resid')
-        plt.hist(self.resid)
+        plt.scatter(self.fit_regression.fittedvalues, self.fit_regression.resid)
+        plt.axhline(0, linestyle='--')
+        plt.xlabel('Fitted values')
+        plt.ylabel('Residuals')
         plt.show()
 
         if result['LM-Test p-value'] >= 0.05:
