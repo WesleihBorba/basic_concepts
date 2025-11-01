@@ -71,24 +71,24 @@ class LinearRegression:
     def homoscedasticity(self):
         logger.info("Homoscedasticity assumption")
 
-        exog = sm.add_constant(self.test[['income']])
-        bp_test = het_breuschpagan(self.resid, exog)
+        resid = self.fit_regression.resid
+        exog = sm.add_constant(self.train[['education']])
+
+        bp_test = het_breuschpagan(resid, exog)
         labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
         result = dict(zip(labels, bp_test))
 
-        logger.info('Plot of resid')
-        plt.scatter(self.fit_regression.fittedvalues, self.fit_regression.resid)
-        plt.axhline(0, linestyle='--')
+        plt.scatter(self.fit_regression.fittedvalues, resid, alpha=0.5)
+        plt.axhline(0, linestyle='--', color='red')
         plt.xlabel('Fitted values')
         plt.ylabel('Residuals')
+        plt.title('Residuals vs Fitted Values')
         plt.show()
 
         if result['LM-Test p-value'] >= 0.05:
-            logger.debug(f'the dispersion of errors around the regression line should be similar across the range of '
-                         f'values of the predictor variable {result}')
+            logger.debug(f"Homoscedasticity confirmed (p-value={result['LM-Test p-value']:.4f})")
         else:
-            logger.error("the model contains Heteroscedasticity")
-            return
+            logger.warning(f"Heteroscedasticity detected (p-value={result['LM-Test p-value']:.4f})")
 
     def normality_of_residuals(self):
         logger.info("Resid of our model need to follow a normal distribution")
@@ -116,9 +116,7 @@ class LinearRegression:
         y_predict = self.fit_regression.predict(sample['education'])
 
         plt.scatter(y_true, y_predict, alpha=0.7)
-        plt.plot([y_true.min(), y_true.max()],
-                 [y_true.min(), y_true.max()],
-                 'r--', label='Correct line')
+        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
 
         for i in range(len(sample)):
             plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
