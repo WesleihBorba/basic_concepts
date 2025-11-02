@@ -6,10 +6,17 @@ import pandas as pd
 
 # LER 7.6 ATÉ 7.6.9
 
+# PAREI AQUI: Interpretation of Quantitative Variables
+
 model = sm.OLS.from_formula('score ~ hours_studied + breakfast', data=survey).fit()
 
 
 # VER PARA QUE SERVE O sns.lmplot
+
+# Simpson's Paradox: Procurar no chatgpt
+
+# Ver a difrencça de variance inflation factor para multicolinearity
+
 
 
 # ASSMPTIONS: linearity, independence of errors, homoscedasticity (constant variance of errors), normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
