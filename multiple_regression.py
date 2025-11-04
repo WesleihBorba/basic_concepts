@@ -1,34 +1,5 @@
-# Goal:
+# Goal: Understanding Assumption, simpson's paradox and finally predict
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-import statsmodels.api as sm
-import pandas as pd
-
-
-model = sm.OLS.from_formula('score ~ hours_studied + breakfast', data=survey).fit()
-
-
-# Simpson's Paradox: Procurar no chatgpt
-
-# Ver a difrencça de variance inflation factor para multicolinearity
-
-
-
-# ASSMPTIONS: linearity, independence of errors, homoscedasticity (constant variance of errors), normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
-
-# TESTAR O ASSUMPTION DOS SIMPSONS
-
-# MULTICOLINEARITY
-class TestOfMulticolinearity():
-    def regression(X):
-        new_X_test = sm.add_constant(X)
-        vif_data = pd.DataFrame()
-        vif_data["Variável"] = new_X_test.columns
-        vif_data["VIF"] = [variance_inflation_factor(new_X_test.values, i) for i in range(new_X_test.shape[1])]
-        print(vif_data)
-
-
-
-import pandas as pd
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
 from scipy.stats import shapiro
@@ -38,6 +9,8 @@ from sklearn.model_selection import train_test_split
 import logging
 import sys
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 # Logger setting
 logger = logging.getLogger(__name__)
@@ -58,22 +31,53 @@ class MultipleRegression:
 
         self.X, self.y = make_regression(
             n_samples=15000,
-            n_features=1,
+            n_features=2,
             noise=10,
             random_state=42)
 
-        self.data = pd.DataFrame({
-            "education": self.X.flatten(),
-            "income": self.y
-        })
+        self.data = pd.DataFrame(self.X, columns=["education", "working_time"])
+        self.data['income'] = self.y
 
     def linearity_assumption(self):
         logger.info("A single predictor variable need to have straight-line relationship with the dependent variable")
-        plt.scatter(self.X, self.y)
-        plt.xlabel("Education")
-        plt.ylabel("Income")
-        plt.title("Linearity Assumption")
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].scatter(self.data["education"], self.data["income"], alpha=0.5)
+        axes[0].set_xlabel("Education")
+        axes[0].set_ylabel("Income")
+        axes[0].set_title("Education vs Income")
+
+        axes[1].scatter(self.data["working_time"], self.data["income"], alpha=0.5)
+        axes[1].set_xlabel("Working Time")
+        axes[1].set_ylabel("Income")
+        axes[1].set_title("Working Time vs Income")
+
+        plt.tight_layout()
         plt.show()
+
+    def correlation(self):
+        logger.info("Look at the correlation between the dependent and independent variables")
+        sns.heatmap(self.data.corr(numeric_only=True), annot=True, cmap="coolwarm")
+        plt.show()
+
+    def test_multicollinearity(self):
+        logger.info("Test of Multicollinearity")
+        new_X_test = sm.add_constant(self.data[['education', 'working_time']])
+        vif_data = pd.DataFrame()
+        vif_data["variable"] = new_X_test.columns
+        vif_data["VIF"] = [variance_inflation_factor(new_X_test.values, i) for i in range(new_X_test.shape[1])]
+
+        # Drop constant
+        vif_data = vif_data[vif_data["variable"] != "const"]
+
+        for _, row in vif_data.iterrows():
+            logger.debug(f"Variable: {row['variable']}, VIF: {row['VIF']:.4f}")
+
+        # Attention of something wrong
+        high_vif = vif_data[vif_data["VIF"] > 5]
+        if not high_vif.empty:
+            logger.warning(f"High multicollinearity detected:\n{high_vif}")
+        else:
+            logger.info("No significant multicollinearity detected.")
 
     def train_test(self):
         logger.info("Divide train and test")
@@ -84,7 +88,7 @@ class MultipleRegression:
     def fit_model(self):
         logger.info('Starting to fit our regression')
         try:
-            model = sm.OLS.from_formula('income ~ education', data=self.train)
+            model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
             self.fit_regression = model.fit()
             logger.info("Success!")
         except Exception as e:
@@ -94,14 +98,14 @@ class MultipleRegression:
 
     def predict_model(self):
         logger.info('Predict Test Data')
-        self.predict_values = self.fit_regression.predict(self.test['education'])
+        self.predict_values = self.fit_regression.predict(self.test[['education', 'working_time']])
         self.resid = self.test['income'] - self.predict_values
 
     def homoscedasticity(self):
         logger.info("Homoscedasticity assumption")
 
         resid = self.fit_regression.resid
-        exog = sm.add_constant(self.train[['education']])
+        exog = sm.add_constant(self.train[['education', 'working_time']])
 
         bp_test = het_breuschpagan(resid, exog)
         labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
@@ -157,11 +161,22 @@ class MultipleRegression:
         plt.show()
 
 
-class_regression = LinearRegression()
+class_regression = MultipleRegression()
 class_regression.linearity_assumption()
+class_regression.correlation()
+class_regression.test_multicollinearity()
 class_regression.train_test()
 class_regression.fit_model()
 class_regression.predict_model()
 class_regression.homoscedasticity()
-class_regression.evaluating_model()
-class_regression.plot_linear_regression()
+#class_regression.evaluating_model()
+#class_regression.plot_linear_regression()
+
+# ASSMPTIONS: independence of errors, homoscedasticity (constant variance of errors), normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
+
+
+
+exit()
+
+
+# Simpson's Paradox: COLOCAR DEPOIS DE CRIAR TUDO, VOU TER QUE CRIAR OUTRA VÁRIAVEL APENAS PARA ISSO EM UMA NOVA DEF ADICIONANDO UMA NOVA VÁRIAVEL EM SELF.DATA
