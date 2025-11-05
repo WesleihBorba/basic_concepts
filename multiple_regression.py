@@ -146,7 +146,7 @@ class MultipleRegression:
     def plot_linear_regression(self):
         sample = self.test.sample(50)  # 50 random points
         y_true = sample['income']
-        y_predict = self.fit_regression.predict(sample['education'])
+        y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
 
         plt.scatter(y_true, y_predict, alpha=0.7)
         plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
@@ -169,10 +169,11 @@ class_regression.train_test()
 class_regression.fit_model()
 class_regression.predict_model()
 class_regression.homoscedasticity()
-#class_regression.evaluating_model()
-#class_regression.plot_linear_regression()
+class_regression.normality_of_residuals()
+class_regression.evaluating_model()
+class_regression.plot_linear_regression()
 
-# ASSMPTIONS: independence of errors, homoscedasticity (constant variance of errors), normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
+# ASSMPTIONS: independence of errors, normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
 
 
 
