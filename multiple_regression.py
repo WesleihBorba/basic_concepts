@@ -1,4 +1,5 @@
 # Goal: Understanding Assumption, simpson's paradox and finally predict
+from statsmodels.stats.stattools import durbin_watson
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
@@ -132,8 +133,18 @@ class MultipleRegression:
         if p_value > 0.05:
             logger.debug("Our model follow a normal distribution")
         else:
-            logger.debug("We will need to adjust our model")
+            logger.warning("We will need to adjust our model")
             return
+
+    def independence_of_errors(self):
+        logger.info("Testing independence of residuals (Durbin-Watson Test)")
+        dw_stat = durbin_watson(self.resid)
+        logger.info(f"Durbin-Watson statistic: {dw_stat:.4f}")
+
+        if 1.5 <= dw_stat <= 2.5:
+            logger.debug("Residuals appear to be independent.")
+        else:
+            logger.warning("Residuals may be auto correlated — check model specification.")
 
     def evaluating_model(self):
         logger.info("Looking if our model is good to use")
@@ -170,14 +181,9 @@ class_regression.fit_model()
 class_regression.predict_model()
 class_regression.homoscedasticity()
 class_regression.normality_of_residuals()
+class_regression.independence_of_errors()
 class_regression.evaluating_model()
 class_regression.plot_linear_regression()
-
-# ASSMPTIONS: independence of errors, normality of errors, and no multicollinearity, CORRELATION BETWEEN VARIABLES
-
-
-
-exit()
 
 
 # Simpson's Paradox: COLOCAR DEPOIS DE CRIAR TUDO, VOU TER QUE CRIAR OUTRA VÁRIAVEL APENAS PARA ISSO EM UMA NOVA DEF ADICIONANDO UMA NOVA VÁRIAVEL EM SELF.DATA
