@@ -12,6 +12,7 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import numpy as np
 
 # Logger setting
 logger = logging.getLogger(__name__)
@@ -171,6 +172,36 @@ class MultipleRegression:
         plt.legend()
         plt.show()
 
+    def simpsons_paradox(self):
+        logger.info("Testing for Simpson's Paradox")
+
+        # Create a categorical variable dividing in groups
+        self.data['group'] = pd.qcut(self.data['working_time'], q=3, labels=['low', 'medium', 'high'])
+
+        # General correlation
+        corr_total = self.data['education'].corr(self.data['income'])
+        logger.info(f"Overall correlation between education and income: {corr_total:.4f}")
+
+        # Group correlation
+        group_corr = (self.data.groupby('group', observed=False)[['education', 'income']].corr().iloc[0::2, -1]
+                      .reset_index())
+        group_corr.columns = ['group', 'drop', 'correlation']
+        group_corr = group_corr.drop(columns='drop')
+
+        for _, row in group_corr.iterrows():
+            logger.debug(f"Group: {row['group']}, Correlation: {row['correlation']:.4f}")
+
+        # Plot the groups
+        sns.lmplot(x='education', y='income', hue='group', data=self.data, markers=["o", "s", "D"])
+        plt.title("Checking Simpson's Paradox across groups (working_time)")
+        plt.show()
+
+        # Check for sign reversal
+        if any(np.sign(group_corr['correlation']) != np.sign(corr_total)):
+            logger.warning("Possible Simpson's Paradox detected — group trends differ from the overall trend.")
+        else:
+            logger.info("No Simpson's Paradox detected — trends are consistent across groups.")
+
 
 class_regression = MultipleRegression()
 class_regression.linearity_assumption()
@@ -184,6 +215,4 @@ class_regression.normality_of_residuals()
 class_regression.independence_of_errors()
 class_regression.evaluating_model()
 class_regression.plot_linear_regression()
-
-
-# Simpson's Paradox: COLOCAR DEPOIS DE CRIAR TUDO, VOU TER QUE CRIAR OUTRA VÁRIAVEL APENAS PARA ISSO EM UMA NOVA DEF ADICIONANDO UMA NOVA VÁRIAVEL EM SELF.DATA
+class_regression.simpsons_paradox()
