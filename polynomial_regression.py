@@ -9,8 +9,10 @@ model2 = sm.OLS.from_formula('height ~ weight + species + weight:species', data=
 # Print model2 results here:
 print(model2.params)
 
+modelP = sm.OLS.from_formula('happy ~ sleep + np.power(sleep,2)', data=happiness).fit()
+print(modelP.params)
 
-
+# PAREI AQUI: Interpreting Polynomial Terms
 
 ## Log Transformations (And More)
 
