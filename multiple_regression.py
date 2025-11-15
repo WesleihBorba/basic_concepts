@@ -155,7 +155,7 @@ class MultipleRegression:
         logger.info(f'Mean Squared Error: {mse}')
         logger.info(f'R-squared: {r2}')
 
-    def plot_linear_regression(self):
+    def plot_multiple_regression(self):
         sample = self.test.sample(50)  # 50 random points
         y_true = sample['income']
         y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
@@ -214,5 +214,5 @@ class_regression.homoscedasticity()
 class_regression.normality_of_residuals()
 class_regression.independence_of_errors()
 class_regression.evaluating_model()
-class_regression.plot_linear_regression()
+class_regression.plot_multiple_regression()
 class_regression.simpsons_paradox()
