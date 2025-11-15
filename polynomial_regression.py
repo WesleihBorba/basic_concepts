@@ -1,5 +1,97 @@
-# Goal:
+# Goal: Running polynomial regression, check assumptions and predict values
+from statsmodels.stats.stattools import durbin_watson
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
+from statsmodels.stats.diagnostic import het_breuschpagan
+from scipy.stats import shapiro
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+import logging
+import sys
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+
+# Logger setting
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Console will show everything
+
+# Handler to console
+stream_handler = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+
+class PolynomialRegression:
+    def __init__(self):
+        self.train, self.test = None, None
+        self.predict_values, self.fit_regression = None, None
+        self.resid = None
+        self.poly_data, self.feature_names = None, None
+
+        self.scaler = StandardScaler()
+        self.poly = PolynomialFeatures(degree=2, include_bias=False)
+
+        self.X, self.y = make_regression(
+            n_samples=15000,
+            n_features=2,
+            noise=10,
+            random_state=42)
+
+        self.data = pd.DataFrame(self.X, columns=["education", "working_time"])
+        self.data['income'] = self.y
+
+    def train_test(self):
+        logger.info("Divide train and test")
+
+        train_df, test_df = train_test_split(
+            self.data,
+            test_size=0.3,
+            random_state=42
+        )
+
+        X_train = train_df[['education', 'working_time']]
+        y_train = train_df['income']
+
+        X_test = test_df[['education', 'working_time']]
+        y_test = test_df['income']
+
+        logger.info("Scaling data")
+        X_train_scaled = self.scaler.fit_transform(X_train)
+        X_test_scaled = self.scaler.transform(X_test)
+
+        logger.info("Creating polynomials")
+        X_train_poly = self.poly.fit_transform(X_train_scaled)
+        X_test_poly = self.poly.transform(X_test_scaled)
+
+        feature_names = self.poly.get_feature_names_out(['education', 'working_time'])
+
+        self.train = pd.DataFrame(X_train_poly, columns=feature_names)
+        self.train['income'] = y_train.values
+
+        self.test = pd.DataFrame(X_test_poly, columns=feature_names)
+        self.test['income'] = y_test.values
+
+        logger.debug(f"Train: {self.train.shape}, Test: {self.test.shape}")
+
+
+class_regression = PolynomialRegression()
+class_regression.train_test()
+#class_regression.correlation()
+#class_regression.test_multicollinearity()
+#class_regression.fit_model()
+#class_regression.predict_model()
+#class_regression.homoscedasticity()
+#class_regression.normality_of_residuals()
+#class_regression.independence_of_errors()
+#class_regression.evaluating_model()
+#class_regression.plot_linear_regression()
+
+exit()
+
 
 ## USAR MAKE REGRESSION E ALGUNS CALCULOS PARA FAZER A LINHA DE REGRESSÃO COM 1 OU 2 VARIÁVEIS
 
@@ -40,63 +132,12 @@ print(modelP.params)
 
 
 
-# Goal: Understanding Assumption, simpson's paradox and finally predict
-from statsmodels.stats.stattools import durbin_watson
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-import statsmodels.api as sm
-from statsmodels.stats.diagnostic import het_breuschpagan
-from scipy.stats import shapiro
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.datasets import make_regression
-from sklearn.model_selection import train_test_split
-import logging
-import sys
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
-import numpy as np
-
-# Logger setting
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Console will show everything
-
-# Handler to console
-stream_handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
 
 
-class MultipleRegression:
-    def __init__(self):
-        self.train, self.test = None, None
-        self.predict_values, self.fit_regression = None, None
-        self.resid = None
 
-        self.X, self.y = make_regression(
-            n_samples=15000,
-            n_features=2,
-            noise=10,
-            random_state=42)
 
-        self.data = pd.DataFrame(self.X, columns=["education", "working_time"])
-        self.data['income'] = self.y
 
-    def linearity_assumption(self):
-        logger.info("A single predictor variable need to have straight-line relationship with the dependent variable")
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-        axes[0].scatter(self.data["education"], self.data["income"], alpha=0.5)
-        axes[0].set_xlabel("Education")
-        axes[0].set_ylabel("Income")
-        axes[0].set_title("Education vs Income")
-
-        axes[1].scatter(self.data["working_time"], self.data["income"], alpha=0.5)
-        axes[1].set_xlabel("Working Time")
-        axes[1].set_ylabel("Income")
-        axes[1].set_title("Working Time vs Income")
-
-        plt.tight_layout()
-        plt.show()
+class teste:
 
     def correlation(self):
         logger.info("Look at the correlation between the dependent and independent variables")
@@ -123,11 +164,7 @@ class MultipleRegression:
         else:
             logger.info("No significant multicollinearity detected.")
 
-    def train_test(self):
-        logger.info("Divide train and test")
-        self.train, self.test = train_test_split(self.data, test_size=0.3,
-                                                 random_state=42)
-        logger.debug(f"Shapes - test: {self.test.shape}, train: {self.train.shape}")
+
 
     def fit_model(self):
         logger.info('Starting to fit our regression')
@@ -216,15 +253,3 @@ class MultipleRegression:
 
 
 
-class_regression = MultipleRegression()
-class_regression.linearity_assumption()
-class_regression.correlation()
-class_regression.test_multicollinearity()
-class_regression.train_test()
-class_regression.fit_model()
-class_regression.predict_model()
-class_regression.homoscedasticity()
-class_regression.normality_of_residuals()
-class_regression.independence_of_errors()
-class_regression.evaluating_model()
-class_regression.plot_linear_regression()
