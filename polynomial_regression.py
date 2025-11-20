@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+import numpy as np
 
 # Logger setting
 logger = logging.getLogger(__name__)
@@ -30,19 +31,70 @@ class PolynomialRegression:
         self.train, self.test = None, None
         self.predict_values, self.fit_regression = None, None
         self.resid = None
-        self.poly_data, self.feature_names = None, None
 
-        self.scaler = StandardScaler()
-        self.poly = PolynomialFeatures(degree=2, include_bias=False)
+        #self.poly_data, self.feature_names = None, None
 
-        self.X, self.y = make_regression(
-            n_samples=15000,
-            n_features=2,
-            noise=10,
-            random_state=42)
+        #self.scaler = StandardScaler()
+        #self.poly = PolynomialFeatures(degree=2, include_bias=False)
 
-        self.data = pd.DataFrame(self.X, columns=["education", "working_time"])
-        self.data['income'] = self.y
+        n = 15000
+
+        education = np.random.normal(10, 3, n)
+        working_time = np.random.uniform(20, 60, n)
+
+        noise = np.random.normal(0, 30, n)
+
+        income = (
+            0.8 * education ** 3
+            - 5 * education ** 2
+            + 2 * working_time
+            + 0.5 * working_time ** 2
+            + noise
+        )
+
+        self.X = np.column_stack([education, working_time])
+        self.y = income
+
+        self.data = pd.DataFrame({
+            "education": education,
+            "working_time": working_time,
+            "income": income
+        })
+
+    def correlation(self):
+        logger.info("Look at the correlation between the dependent and independent variables")
+        sns.heatmap(self.data.corr(numeric_only=True), annot=True, cmap="coolwarm")
+        plt.show()
+
+    def test_multicollinearity(self):
+        logger.info("Test of Multicollinearity")
+        new_X_test = sm.add_constant(self.data[['education', 'working_time']])
+        vif_data = pd.DataFrame()
+        vif_data["variable"] = new_X_test.columns
+        vif_data["VIF"] = [variance_inflation_factor(new_X_test.values, i) for i in range(new_X_test.shape[1])]
+
+        # Drop constant
+        vif_data = vif_data[vif_data["variable"] != "const"]
+
+        for _, row in vif_data.iterrows():
+            logger.debug(f"Variable: {row['variable']}, VIF: {row['VIF']:.4f}")
+
+        # Attention of something wrong
+        high_vif = vif_data[vif_data["VIF"] > 5]
+        if not high_vif.empty:
+            logger.warning(f"High multicollinearity detected:\n{high_vif}")
+        else:
+            logger.info("No significant multicollinearity detected.")
+
+    def detect_non_linear_relation(self):
+        logger.debug("X variable and Y variable must be non linear relation to use poly regression")
+
+        for X in self.data.columns:
+            if (X == 'education') or (X == 'working_time'):
+                plt.figure(figsize=(8, 6))
+                sns.scatterplot(x=self.data[f'{X}'], y=self.data['income'])
+                plt.title("Scatter Plot of Nonlinear Data")
+                plt.show()
 
     def train_test(self):
         logger.info("Divide train and test")
@@ -79,9 +131,10 @@ class PolynomialRegression:
 
 
 class_regression = PolynomialRegression()
-class_regression.train_test()
-#class_regression.correlation()
-#class_regression.test_multicollinearity()
+class_regression.correlation()
+class_regression.test_multicollinearity()
+class_regression.detect_non_linear_relation()
+#class_regression.train_test()
 #class_regression.fit_model()
 #class_regression.predict_model()
 #class_regression.homoscedasticity()
@@ -93,7 +146,6 @@ class_regression.train_test()
 exit()
 
 
-## USAR MAKE REGRESSION E ALGUNS CALCULOS PARA FAZER A LINHA DE REGRESSÃO COM 1 OU 2 VARIÁVEIS
 
 
 model2 = sm.OLS.from_formula('height ~ weight + species + weight:species', data=plants).fit() # Entender como funcionar o weight:species
@@ -103,16 +155,12 @@ print(model2.params)
 modelP = sm.OLS.from_formula('happy ~ sleep + np.power(sleep,2)', data=happiness).fit()
 print(modelP.params)
 
-## E assumptions pegar em sites - Depois perguntar no chatgpt
 
-# Nonlinear relationship
 # Linearity in coefficients
 # Independence of errors
 # Normality of errors
 # Homoscedasticity
 # Mean of errors is zero
-# No multicollinearity
-
 # Cost Function (como MSE ou RMSE)
 # validação cruzada para achar o degree
 
@@ -139,30 +187,8 @@ print(modelP.params)
 
 class teste:
 
-    def correlation(self):
-        logger.info("Look at the correlation between the dependent and independent variables")
-        sns.heatmap(self.data.corr(numeric_only=True), annot=True, cmap="coolwarm")
-        plt.show()
 
-    def test_multicollinearity(self):
-        logger.info("Test of Multicollinearity")
-        new_X_test = sm.add_constant(self.data[['education', 'working_time']])
-        vif_data = pd.DataFrame()
-        vif_data["variable"] = new_X_test.columns
-        vif_data["VIF"] = [variance_inflation_factor(new_X_test.values, i) for i in range(new_X_test.shape[1])]
 
-        # Drop constant
-        vif_data = vif_data[vif_data["variable"] != "const"]
-
-        for _, row in vif_data.iterrows():
-            logger.debug(f"Variable: {row['variable']}, VIF: {row['VIF']:.4f}")
-
-        # Attention of something wrong
-        high_vif = vif_data[vif_data["VIF"] > 5]
-        if not high_vif.empty:
-            logger.warning(f"High multicollinearity detected:\n{high_vif}")
-        else:
-            logger.info("No significant multicollinearity detected.")
 
 
 
