@@ -32,10 +32,8 @@ class PolynomialRegression:
         self.predict_values, self.fit_regression = None, None
         self.resid = None
 
-        #self.poly_data, self.feature_names = None, None
-
-        #self.scaler = StandardScaler()
-        #self.poly = PolynomialFeatures(degree=2, include_bias=False)
+        self.scaler = StandardScaler()
+        self.poly = PolynomialFeatures(degree=3, include_bias=False)
 
         n = 15000
 
@@ -45,11 +43,11 @@ class PolynomialRegression:
         noise = np.random.normal(0, 30, n)
 
         income = (
-            0.8 * education ** 3
-            - 5 * education ** 2
-            + 2 * working_time
-            + 0.5 * working_time ** 2
-            + noise
+                0.8 * education ** 3
+                - 5 * education ** 2
+                + 2 * working_time
+                + 0.5 * working_time ** 2
+                + noise
         )
 
         self.X = np.column_stack([education, working_time])
@@ -96,7 +94,7 @@ class PolynomialRegression:
                 plt.title("Scatter Plot of Nonlinear Data")
                 plt.show()
 
-    def train_test(self):
+    def train_test_scaling(self):
         logger.info("Divide train and test")
 
         train_df, test_df = train_test_split(
@@ -105,41 +103,54 @@ class PolynomialRegression:
             random_state=42
         )
 
-        X_train = train_df[['education', 'working_time']]
+        X_train = train_df.drop(columns={'income'})
         y_train = train_df['income']
 
-        X_test = test_df[['education', 'working_time']]
+        X_test = test_df.drop(columns={'income'})
         y_test = test_df['income']
 
-        logger.info("Scaling data")
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
-
-        logger.info("Creating polynomials")
-        X_train_poly = self.poly.fit_transform(X_train_scaled)
-        X_test_poly = self.poly.transform(X_test_scaled)
+        logger.info("Transforming our X in Non-Linear giving other variables")
+        x_train_poly = self.poly.fit_transform(X_train)
+        x_test_poly = self.poly.fit_transform(X_test)
 
         feature_names = self.poly.get_feature_names_out(['education', 'working_time'])
 
-        self.train = pd.DataFrame(X_train_poly, columns=feature_names)
+        x_poly_train = pd.DataFrame(x_train_poly, columns=feature_names)
+        x_poly_test = pd.DataFrame(x_test_poly, columns=feature_names)
+
+        logger.info('Normalized scale poly regression')
+        x_train_scaled = self.scaler.fit_transform(x_poly_train)
+        x_test_scaled = self.scaler.transform(x_poly_test)
+
+        self.train = pd.DataFrame(x_train_scaled, columns=feature_names)
         self.train['income'] = y_train.values
 
-        self.test = pd.DataFrame(X_test_poly, columns=feature_names)
+        self.test = pd.DataFrame(x_test_scaled, columns=feature_names)
         self.test['income'] = y_test.values
 
         logger.debug(f"Train: {self.train.shape}, Test: {self.test.shape}")
 
+    def independence_of_errors(self):
+        logger.info("Testing independence of residuals (Durbin-Watson Test)")
+        dw_stat = durbin_watson(self.resid)
+        logger.info(f"Durbin-Watson statistic: {dw_stat:.4f}")
+
+        if 1.5 <= dw_stat <= 2.5:
+            logger.debug("Residuals appear to be independent.")
+        else:
+            logger.warning("Residuals may be auto correlated — check model specification.")
 
 class_regression = PolynomialRegression()
-class_regression.correlation()
-class_regression.test_multicollinearity()
-class_regression.detect_non_linear_relation()
-#class_regression.train_test()
+#class_regression.correlation()
+#class_regression.test_multicollinearity()
+#class_regression.detect_non_linear_relation()
+class_regression.train_test_scaling()
+#class_regression.independence_of_errors()
+
 #class_regression.fit_model()
 #class_regression.predict_model()
 #class_regression.homoscedasticity()
 #class_regression.normality_of_residuals()
-#class_regression.independence_of_errors()
 #class_regression.evaluating_model()
 #class_regression.plot_linear_regression()
 
@@ -156,8 +167,7 @@ modelP = sm.OLS.from_formula('happy ~ sleep + np.power(sleep,2)', data=happiness
 print(modelP.params)
 
 
-# Linearity in coefficients
-# Independence of errors
+
 # Normality of errors
 # Homoscedasticity
 # Mean of errors is zero
@@ -242,15 +252,7 @@ class teste:
             logger.warning("We will need to adjust our model")
             return
 
-    def independence_of_errors(self):
-        logger.info("Testing independence of residuals (Durbin-Watson Test)")
-        dw_stat = durbin_watson(self.resid)
-        logger.info(f"Durbin-Watson statistic: {dw_stat:.4f}")
 
-        if 1.5 <= dw_stat <= 2.5:
-            logger.debug("Residuals appear to be independent.")
-        else:
-            logger.warning("Residuals may be auto correlated — check model specification.")
 
     def evaluating_model(self):
         logger.info("Looking if our model is good to use")
