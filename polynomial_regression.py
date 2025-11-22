@@ -130,6 +130,25 @@ class PolynomialRegression:
 
         logger.debug(f"Train: {self.train.shape}, Test: {self.test.shape}")
 
+    def fit_model(self):
+        logger.info('Starting to fit our regression')
+        x_train = self.train.drop(columns={'income'})
+        try:
+            model = sm.OLS(self.train['income'], sm.add_constant(x_train))
+            self.fit_regression = model.fit()
+            logger.info("Success!")
+        except Exception as e:
+            logger.error(f"Fail to training: {e}")
+
+        logger.info(f"Coefficients: {self.fit_regression.params}")
+
+    def predict_model(self):
+        logger.info('Predict Test Data')
+        x_test = self.test.drop(columns={'income'})
+
+        self.predict_values = self.fit_regression.predict(x_test)
+        self.resid = self.test['income'] - self.predict_values
+
     def independence_of_errors(self):
         logger.info("Testing independence of residuals (Durbin-Watson Test)")
         dw_stat = durbin_watson(self.resid)
@@ -145,10 +164,10 @@ class_regression = PolynomialRegression()
 #class_regression.test_multicollinearity()
 #class_regression.detect_non_linear_relation()
 class_regression.train_test_scaling()
+class_regression.fit_model()
+class_regression.predict_model()
 #class_regression.independence_of_errors()
 
-#class_regression.fit_model()
-#class_regression.predict_model()
 #class_regression.homoscedasticity()
 #class_regression.normality_of_residuals()
 #class_regression.evaluating_model()
@@ -157,14 +176,6 @@ class_regression.train_test_scaling()
 exit()
 
 
-
-
-model2 = sm.OLS.from_formula('height ~ weight + species + weight:species', data=plants).fit() # Entender como funcionar o weight:species
-# Print model2 results here:
-print(model2.params)
-
-modelP = sm.OLS.from_formula('happy ~ sleep + np.power(sleep,2)', data=happiness).fit()
-print(modelP.params)
 
 
 
@@ -199,24 +210,6 @@ class teste:
 
 
 
-
-
-
-    def fit_model(self):
-        logger.info('Starting to fit our regression')
-        try:
-            model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
-            self.fit_regression = model.fit()
-            logger.info("Success!")
-        except Exception as e:
-            logger.error(f"Fail to training: {e}")
-
-        logger.info(f"Coefficients: {self.fit_regression.params}")
-
-    def predict_model(self):
-        logger.info('Predict Test Data')
-        self.predict_values = self.fit_regression.predict(self.test[['education', 'working_time']])
-        self.resid = self.test['income'] - self.predict_values
 
     def homoscedasticity(self):
         logger.info("Homoscedasticity assumption")
