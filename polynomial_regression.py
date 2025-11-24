@@ -4,8 +4,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 from statsmodels.stats.diagnostic import het_breuschpagan
 from scipy.stats import shapiro
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.datasets import make_regression
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 import logging
 import sys
@@ -195,87 +194,53 @@ class PolynomialRegression:
         else:
             logger.warning(f"Heteroscedasticity detected (p-value={result['LM-Test p-value']:.4f})")
 
+    def evaluating_model(self):
+        logger.info("Looking if our model is good to use")
+        mse = mean_squared_error(self.test['income'], self.predict_values)
+
+        logger.info(f'Mean Squared Error: {mse}')
+        logger.info(f'Root Mean Squared Error: {np.sqrt(mse)}')
+
+    def plot_regression(self):
+        logger.info("Plot regression for Polynomial Model")
+
+        sample = self.test.sample(50)
+
+        y_true = sample['income']
+
+        X_sample = sample.drop(columns=['income'])
+        X_sample_const = sm.add_constant(X_sample)
+
+        y_predict = self.fit_regression.predict(X_sample_const)
+
+        plt.scatter(y_true, y_predict, alpha=0.7)
+        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()],
+                 'r--', label='Perfect prediction')
+
+        for i in range(len(sample)):
+            plt.plot([y_true.iloc[i], y_true.iloc[i]],
+                     [y_true.iloc[i], y_predict.iloc[i]],
+                     'gray', alpha=0.3)
+
+        plt.xlabel('Real value (income)')
+        plt.ylabel('Predicted value (income)')
+        plt.title('Comparison between actual and predicted values (with errors)')
+        plt.legend()
+        plt.show()
+
+
 class_regression = PolynomialRegression()
-#class_regression.correlation()
-#class_regression.test_multicollinearity()
-#class_regression.detect_non_linear_relation()
+class_regression.correlation()
+class_regression.test_multicollinearity()
+class_regression.detect_non_linear_relation()
 class_regression.train_test_scaling()
 class_regression.fit_model()
 class_regression.predict_model()
 class_regression.independence_of_errors()
 class_regression.normality_of_residuals()
 class_regression.homoscedasticity()
+class_regression.evaluating_model()
+class_regression.plot_regression()
 
-#class_regression.evaluating_model()
-#class_regression.plot_linear_regression()
-
-exit()
-
-
-
-
-
-
-# Mean of errors is zero
-# Cost Function (como MSE ou RMSE)
 # validação cruzada para achar o degree
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class teste:
-
-
-
-
-
-
-
-
-
-
-    def evaluating_model(self):
-        logger.info("Looking if our model is good to use")
-        mse = mean_squared_error(self.test['income'], self.predict_values)
-        r2 = r2_score(self.test['income'], self.predict_values)
-
-        logger.info(f'Mean Squared Error: {mse}')
-        logger.info(f'R-squared: {r2}')
-
-    def plot_linear_regression(self):
-        sample = self.test.sample(50)  # 50 random points
-        y_true = sample['income']
-        y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
-
-        plt.scatter(y_true, y_predict, alpha=0.7)
-        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
-
-        for i in range(len(sample)):
-            plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
-
-        plt.xlabel('Real value (income)')
-        plt.ylabel('Predict value (income)')
-        plt.title('Comparison between actual and predicted values (with errors)')
-        plt.legend()
-        plt.show()
-
-
 
