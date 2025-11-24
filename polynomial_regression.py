@@ -111,7 +111,7 @@ class PolynomialRegression:
 
         logger.info("Transforming our X in Non-Linear giving other variables")
         x_train_poly = self.poly.fit_transform(X_train)
-        x_test_poly = self.poly.fit_transform(X_test)
+        x_test_poly = self.poly.transform(X_test)
 
         feature_names = self.poly.get_feature_names_out(['education', 'working_time'])
 
@@ -146,7 +146,9 @@ class PolynomialRegression:
         logger.info('Predict Test Data')
         x_test = self.test.drop(columns={'income'})
 
-        self.predict_values = self.fit_regression.predict(x_test)
+        x_test_const = sm.add_constant(x_test)
+
+        self.predict_values = self.fit_regression.predict(x_test_const)
         self.resid = self.test['income'] - self.predict_values
 
     def independence_of_errors(self):
@@ -159,6 +161,40 @@ class PolynomialRegression:
         else:
             logger.warning("Residuals may be auto correlated — check model specification.")
 
+    def normality_of_residuals(self):
+        logger.info("Resid of our model need to follow a normal distribution")
+
+        stat, p_value = shapiro(self.resid)
+        logger.info(f"Stats: {stat:.4f}, p-valor: {p_value:.4f}")
+
+        if p_value > 0.05:
+            logger.debug("Our resid follow a normal distribution")
+        else:
+            logger.warning("We will need to adjust our model")
+            return
+
+    def homoscedasticity(self):
+        logger.info("Homoscedasticity assumption")
+
+        resid = self.fit_regression.resid
+        exog = self.fit_regression.model.exog
+
+        bp_test = het_breuschpagan(resid, exog)
+        labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
+        result = dict(zip(labels, bp_test))
+
+        plt.scatter(self.fit_regression.fittedvalues, resid, alpha=0.5)
+        plt.axhline(0, linestyle='--', color='red')
+        plt.xlabel('Fitted values')
+        plt.ylabel('Residuals')
+        plt.title('Residuals vs Fitted Values')
+        plt.show()
+
+        if result['LM-Test p-value'] >= 0.05:
+            logger.debug(f"Homoscedasticity confirmed (p-value={result['LM-Test p-value']:.4f})")
+        else:
+            logger.warning(f"Heteroscedasticity detected (p-value={result['LM-Test p-value']:.4f})")
+
 class_regression = PolynomialRegression()
 #class_regression.correlation()
 #class_regression.test_multicollinearity()
@@ -166,10 +202,10 @@ class_regression = PolynomialRegression()
 class_regression.train_test_scaling()
 class_regression.fit_model()
 class_regression.predict_model()
-#class_regression.independence_of_errors()
+class_regression.independence_of_errors()
+class_regression.normality_of_residuals()
+class_regression.homoscedasticity()
 
-#class_regression.homoscedasticity()
-#class_regression.normality_of_residuals()
 #class_regression.evaluating_model()
 #class_regression.plot_linear_regression()
 
@@ -179,8 +215,7 @@ exit()
 
 
 
-# Normality of errors
-# Homoscedasticity
+
 # Mean of errors is zero
 # Cost Function (como MSE ou RMSE)
 # validação cruzada para achar o degree
@@ -211,39 +246,9 @@ class teste:
 
 
 
-    def homoscedasticity(self):
-        logger.info("Homoscedasticity assumption")
 
-        resid = self.fit_regression.resid
-        exog = sm.add_constant(self.train[['education', 'working_time']])
 
-        bp_test = het_breuschpagan(resid, exog)
-        labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
-        result = dict(zip(labels, bp_test))
 
-        plt.scatter(self.fit_regression.fittedvalues, resid, alpha=0.5)
-        plt.axhline(0, linestyle='--', color='red')
-        plt.xlabel('Fitted values')
-        plt.ylabel('Residuals')
-        plt.title('Residuals vs Fitted Values')
-        plt.show()
-
-        if result['LM-Test p-value'] >= 0.05:
-            logger.debug(f"Homoscedasticity confirmed (p-value={result['LM-Test p-value']:.4f})")
-        else:
-            logger.warning(f"Heteroscedasticity detected (p-value={result['LM-Test p-value']:.4f})")
-
-    def normality_of_residuals(self):
-        logger.info("Resid of our model need to follow a normal distribution")
-
-        stat, p_value = shapiro(self.resid)
-        logger.info(f"Stats: {stat:.4f}, p-valor: {p_value:.4f}")
-
-        if p_value > 0.05:
-            logger.debug("Our model follow a normal distribution")
-        else:
-            logger.warning("We will need to adjust our model")
-            return
 
 
 
