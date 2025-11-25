@@ -241,6 +241,3 @@ class_regression.normality_of_residuals()
 class_regression.homoscedasticity()
 class_regression.evaluating_model()
 class_regression.plot_regression()
-
-# validação cruzada para achar o degree
-
