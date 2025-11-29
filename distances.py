@@ -1,4 +1,4 @@
-# Goal:
+# Goal: Understanding three types of distances and how they are used in algorithms.
 from scipy.spatial import distance
 
 
