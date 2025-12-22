@@ -5,8 +5,9 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
+from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline
 import logging
 import sys
 
@@ -24,7 +25,9 @@ logger.addHandler(stream_handler)
 class NearstNeighbors:
 
     def __init__(self):
-        self.train, self.test = None, None
+        self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
+        self.best_k, self.cv_scores = None, None
+        self.y_predict, self.y_prob = None, None
 
         np.random.seed(42)
         n = 10_000
@@ -37,6 +40,7 @@ class NearstNeighbors:
         new_device = np.random.binomial(1, 0.4, n)
         new_location = np.random.binomial(1, 0.4, n)
         merchant_risk = np.random.uniform(0, 1, n)  # merchant score
+
         fraud = (
                 (amount_ratio > 2.5) &
                 (number_transaction_24h > 3) &
@@ -44,6 +48,7 @@ class NearstNeighbors:
                 (merchant_risk > 0.6)
                 )
         fraud = [int(elem) for elem in fraud]
+
         self.data = pd.DataFrame({
             "amount": amount,
             "avg_amount_30d": avg_amount,
@@ -57,50 +62,67 @@ class NearstNeighbors:
 
     def train_test(self):
         logger.info("Divide train and test")
-        X = self.data.drop('fraud')
+        X = self.data.drop(columns={'fraud'})
         y = self.data['fraud']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
-
-    def normalization(self):
-        pass
-        # PRECISA NORMALIZAR AS INFORMAÇÕES
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
     def cross_validation(self):
-        # Usar cross validation
-        k_values = [i for i in range(1, 21)]
-        scores = []
+        logger.info("Cross validation for KNN")
 
-        scaler = StandardScaler()
-        X = scaler.fit_transform(X)
+        k_values = range(1, 21)
+        scores = []
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
         for k in k_values:
-            knn = KNeighborsClassifier(n_neighbors=k)
-            score = cross_val_score(knn, X, y, cv=5)
-            scores.append(np.mean(score))
+            pipe = Pipeline([
+                ("scaler", StandardScaler()),
+                ("knn", KNeighborsClassifier(
+                    n_neighbors=k,
+                    weights="distance"
+                ))
+            ])
 
-        sns.lineplot(x=k_values, y=scores, marker='o')
-        plt.xlabel("K Values")
-        plt.ylabel("Accuracy Score")
+            cv_score = cross_val_score(
+                pipe,
+                self.X_train,
+                self.y_train,
+                cv=cv,
+                scoring="roc_auc"
+            )
 
-        best_index = np.argmax(scores)
-        best_k = k_values[best_index]
+            scores.append(cv_score.mean())
 
-        knn = KNeighborsClassifier(n_neighbors=best_k)
-        knn.fit(X_train, y_train)
-        y_pred = knn.predict(X_test)
-        # Descobrir como encontrar o K corretamente e colocar em um DEF e mostrar gráficamente com dados reais para ver como fica a mudança em forma de circulo, como feito aqui: K-Nearest Neighbors Classifier
+        best_k = k_values[np.argmax(scores)]
+        self.best_k = best_k
+        self.cv_scores = scores
+        logger.info(f"Best K found: {best_k}")
+
+    def classifier_data(self):
+        logger.info("Training final KNN model")
+
+        data_predict = Pipeline([
+            ("scaler", StandardScaler()),
+            ("knn", KNeighborsClassifier(
+                n_neighbors=self.best_k,
+                weights="distance"
+            ))
+        ])
+
+        data_predict.fit(self.X_train, self.y_train)
+
+        self.y_predict = data_predict.predict(self.X_test)
+        self.y_prob = data_predict.predict_proba(self.X_test)[:, 1]
+        print(self.y_predict)
+        print(self.y_prob)
 
     def validation_model(self):
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred)
-        recall = recall_score(y_test, y_pred)
-
-        print("Accuracy:", accuracy)
-        print("Precision:", precision)
-        print("Recall:", recall)
+        print(classification_report(self.y_test, y_pred))
+        print("ROC AUC:", roc_auc_score(self.y_test, y_proba))
 
         cm = confusion_matrix(y_test, y_pred)
 
 
 class_neighbor = NearstNeighbors()
 class_neighbor.train_test()
+class_neighbor.cross_validation()
+class_neighbor.classifier_data()
