@@ -24,44 +24,41 @@ logger.addHandler(stream_handler)
 class NearstNeighbors:
 
     def __init__(self):
+        self.train, self.test = None, None
+
         np.random.seed(42)
         n = 10_000
-        amount = np.random.lognormal(mean=3, sigma=1, size=n)
-        avg_amount = np.random.lognormal(mean=3, sigma=0.5, size=n)
+        amount = np.random.lognormal(mean=4, sigma=1, size=n)
+        avg_amount = np.random.lognormal(mean=2, sigma=1, size=n)
         amount_ratio = amount / (avg_amount + 1)
 
-        hour = np.random.randint(0, 24, n)
         number_transaction_24h = np.random.poisson(lam=2, size=n)
 
-        new_merchant = np.random.binomial(1, 0.1, n)
-        new_device = np.random.binomial(1, 0.05, n)
-        new_location = np.random.binomial(1, 0.03, n)
+        new_device = np.random.binomial(1, 0.4, n)
+        new_location = np.random.binomial(1, 0.4, n)
         merchant_risk = np.random.uniform(0, 1, n)  # merchant score
-
         fraud = (
-                (amount_ratio > 4) &
-                (number_transaction_24h > 5) &
+                (amount_ratio > 2.5) &
+                (number_transaction_24h > 3) &
                 ((new_device == 1) | (new_location == 1)) &
-                (merchant_risk > 0.7)).astype(int)
-
+                (merchant_risk > 0.6)
+                )
+        fraud = [int(elem) for elem in fraud]
         self.data = pd.DataFrame({
             "amount": amount,
             "avg_amount_30d": avg_amount,
             "amount_ratio": amount_ratio,
-            "hour": hour,
             "number_transaction_24h": number_transaction_24h,
-            "new_merchant": new_merchant,
             "new_device": new_device,
             "new_location": new_location,
             "merchant_risk": merchant_risk,
             "fraud": fraud
         })
 
-        print(self.data)
-
-
     def train_test(self):
-        logger.info()
+        logger.info("Divide train and test")
+        X = self.data.drop('fraud')
+        y = self.data['fraud']
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
     def normalization(self):
@@ -106,3 +103,4 @@ class NearstNeighbors:
 
 
 class_neighbor = NearstNeighbors()
+class_neighbor.train_test()
