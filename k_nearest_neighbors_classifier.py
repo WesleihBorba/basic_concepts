@@ -1,7 +1,6 @@
 # Goal: Find best K of K-Nearst and predict data
 from sklearn.neighbors import KNeighborsClassifier
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -112,17 +111,23 @@ class NearstNeighbors:
 
         self.y_predict = data_predict.predict(self.X_test)
         self.y_prob = data_predict.predict_proba(self.X_test)[:, 1]
-        print(self.y_predict)
-        print(self.y_prob)
+
+    def plot_cv(self):
+        plt.figure()
+        plt.plot(range(1, 21), self.cv_scores, marker='o')
+        plt.xlabel("Number of Neighbors (K)")
+        plt.ylabel("ROC AUC")
+        plt.title("KNN Cross-Validation")
+        plt.show()
 
     def validation_model(self):
-        print(classification_report(self.y_test, y_pred))
-        print("ROC AUC:", roc_auc_score(self.y_test, y_proba))
-
-        cm = confusion_matrix(y_test, y_pred)
+        logger.info(classification_report(self.y_test, self.y_predict))
+        logger.info(f"ROC AUC: {roc_auc_score(self.y_test, self.y_prob)}")
 
 
 class_neighbor = NearstNeighbors()
 class_neighbor.train_test()
 class_neighbor.cross_validation()
 class_neighbor.classifier_data()
+class_neighbor.plot_cv()
+class_neighbor.validation_model()
