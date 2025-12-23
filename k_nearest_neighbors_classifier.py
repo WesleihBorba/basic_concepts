@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
+from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 import logging
@@ -26,7 +26,7 @@ class NearstNeighbors:
     def __init__(self):
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
         self.best_k, self.cv_scores = None, None
-        self.y_predict, self.y_prob = None, None
+        self.model, self.y_predict, self.y_prob = None, None, None
 
         np.random.seed(42)
         n = 10_000
@@ -63,7 +63,12 @@ class NearstNeighbors:
         logger.info("Divide train and test")
         X = self.data.drop(columns={'fraud'})
         y = self.data['fraud']
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y,
+            test_size=0.2,
+            stratify=y,
+            random_state=0
+        )
 
     def cross_validation(self):
         logger.info("Cross validation for KNN")
@@ -99,7 +104,7 @@ class NearstNeighbors:
     def classifier_data(self):
         logger.info("Training final KNN model")
 
-        data_predict = Pipeline([
+        self.model = Pipeline([
             ("scaler", StandardScaler()),
             ("knn", KNeighborsClassifier(
                 n_neighbors=self.best_k,
@@ -107,10 +112,10 @@ class NearstNeighbors:
             ))
         ])
 
-        data_predict.fit(self.X_train, self.y_train)
+        self.model.fit(self.X_train, self.y_train)
 
-        self.y_predict = data_predict.predict(self.X_test)
-        self.y_prob = data_predict.predict_proba(self.X_test)[:, 1]
+        self.y_predict = self.model.predict(self.X_test)
+        self.y_prob = self.model.predict_proba(self.X_test)[:, 1]
 
     def plot_cv(self):
         plt.figure()
@@ -124,6 +129,29 @@ class NearstNeighbors:
         logger.info(classification_report(self.y_test, self.y_predict))
         logger.info(f"ROC AUC: {roc_auc_score(self.y_test, self.y_prob)}")
 
+    def single_predict(self):
+        logger.info('Testing a single predict using our model')
+        new_transaction = np.array([[
+            1200,  # amount
+            300,  # avg_amount_30d
+            4.0,  # amount_ratio
+            5,  # number_transaction_24h
+            1,  # new_device
+            0,  # new_location
+            0.8  # merchant_risk
+        ]])
+
+        transaction_df = pd.DataFrame(
+            new_transaction,
+            columns=self.X_train.columns
+        )
+
+        fraud_predict = self.model.predict(transaction_df)[0]
+        fraud_prob = self.model.predict_proba(transaction_df)[0, 1]
+
+        logger.info(f"Fraud prediction: {fraud_predict}")
+        logger.info(f"Fraud probability: {fraud_prob:.4f}")
+
 
 class_neighbor = NearstNeighbors()
 class_neighbor.train_test()
@@ -131,3 +159,4 @@ class_neighbor.cross_validation()
 class_neighbor.classifier_data()
 class_neighbor.plot_cv()
 class_neighbor.validation_model()
+class_neighbor.single_predict()
