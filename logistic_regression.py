@@ -1,11 +1,8 @@
 # Goal: Classifying e-mail spam
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-import statsmodels.api as sm
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
+from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
@@ -26,7 +23,7 @@ logger.addHandler(stream_handler)
 class LogisticRegressionModel:
     def __init__(self):
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
-        self.model, self.predict_values, self.resid = None, None, None
+        self.model, self.predict_values = None, None
 
         self.vectorizer = TfidfVectorizer(
             lowercase=True,
@@ -36,9 +33,7 @@ class LogisticRegressionModel:
             ngram_range=(1, 2)
         )
 
-        self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
-                                'Fases da vida\\Fase I\\Repository Projects\\files\\spam.csv',
-                                encoding="latin-1")  # Deixar apenas o arquivo sem o caminho
+        self.data = pd.read_csv('spam.csv', encoding="latin-1")
 
     def clean_data(self):
         logger.info('Cleaning data to handle')
@@ -75,7 +70,8 @@ class LogisticRegressionModel:
         self.model = LogisticRegression(
             max_iter=1000,
             class_weight='balanced',
-            penalty='l2'
+            penalty='l2',
+            solver='liblinear'
         )
 
         self.model = self.model.fit(self.X_train, self.y_train)
@@ -83,15 +79,21 @@ class LogisticRegressionModel:
     def predict_model(self):
         logger.info('Predict Test Data')
         self.predict_values = self.model.predict(self.X_test)
-        self.resid = self.y_test - self.predict_values
 
     def evaluating_model(self):
         logger.info("Looking if our model is good to use")
-        print(confusion_matrix(y_true, y_pred))  # Ver se tem como fazer um plot disso
-        accuracy_score, precision_score, precision_score, f1_score  # Escolher qual usar para spam
 
-        logger.info(f'Mean Squared Error: {mse}')
-        logger.info(f'R-squared: {r2}')
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=confusion_matrix(self.y_test, self.predict_values),
+            display_labels=['Ham', 'Spam']
+        )
+        disp.plot(cmap='Blues')
+        plt.title("Confusion Matrix - Spam Classification")
+        plt.show()
+
+        logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
+        logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
+        logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
 
 
 class_regression = LogisticRegressionModel()
@@ -99,6 +101,7 @@ class_regression.clean_data()
 class_regression.train_test()
 class_regression.fitting_data()
 class_regression.predict_model()
+class_regression.evaluating_model()
 
 # Assumptions don't need to test with this kind of data but important in Logistic Regression:
 # 1 - Independent observations
