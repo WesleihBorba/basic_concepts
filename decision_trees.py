@@ -1,5 +1,6 @@
 # Goal: Create a Decision Trees, predict loan credit and plot our tree
 import pandas as pd
+from sklearn.preprocessing import OrdinalEncoder, LabelEncoder
 import logging
 import sys
 
@@ -20,10 +21,33 @@ class DecisionTreesClassification:
         self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
                                 'Fases da vida\\Fase I\\Repository Projects\\files\\loan.csv') # Deixar apenas o arquivo
 
-    def transforming_string_data(self):
-        pass
+    def assumptions_tree(self):
+        logger.info('Transforming string in numeric')
+        map_loan_status = {'Approved': 1, 'Denied': 0}
+        map_marital_status = {'Married': 1, 'Single': 0}
+        map_gender = {'Male': 1, 'Female': 0}
+
+        encoder_ordinal = OrdinalEncoder(categories=[["High School", "Associate's", "Bachelor's",
+                                                      "Master's", "Doctoral"]])
+
+        encoder = LabelEncoder()
+
+        logger.debug(f'Changes of values, loan: {map_loan_status}, marital: {map_marital_status}, gender{map_gender},'
+                     f'Education Level: {encoder_ordinal}')
+
+        self.data['gender'] = self.data['gender'].map(map_gender)
+        self.data['marital_status'] = self.data['marital_status'].map(map_marital_status)
+        self.data['loan_status'] = self.data['loan_status'].map(map_loan_status)
+
+        self.data['occupation'] = encoder.fit_transform(self.data['occupation'])
+        self.data[['education_level']] = encoder_ordinal.fit_transform(self.data[['education_level']])
+
+    def plot_tree(self):
+        pass  # Criar o plot para a trees
+
 
 classification = DecisionTreesClassification()
+classification.assumptions_tree()
 
 
 exit()
@@ -37,9 +61,9 @@ print(classifier.score(test_data, test_labels))
 
 
 
-# Olhar as assumptions of trees
 
-# Criar o plot para a trees
+
+
 
 
 def information_gain(starting_labels, split_labels):
