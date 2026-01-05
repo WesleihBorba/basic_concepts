@@ -1,6 +1,10 @@
 # Goal: Create a Decision Trees, predict loan credit and plot our tree
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder, LabelEncoder
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 import logging
 import sys
 
@@ -18,6 +22,9 @@ logger.addHandler(stream_handler)
 class DecisionTreesClassification:
 
     def __init__(self):
+        self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
+        self.model, self.predict_values = None, None
+
         self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
                                 'Fases da vida\\Fase I\\Repository Projects\\files\\loan.csv') # Deixar apenas o arquivo
 
@@ -42,22 +49,101 @@ class DecisionTreesClassification:
         self.data['occupation'] = encoder.fit_transform(self.data['occupation'])
         self.data[['education_level']] = encoder_ordinal.fit_transform(self.data[['education_level']])
 
+    def train_test(self):
+        logger.info("Divide train and test")
+        X = self.data.drop(columns={'loan_status'})
+        y = self.data['loan_status']
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y,
+            test_size=0.2,
+            stratify=y,
+            random_state=0
+        )
+        logger.debug(f"Train: {self.X_train.shape}, Test: {self.X_test.shape}")
+
+    def fitting_data(self):
+        logger.info('Finding best hyperparameters for Decision Tree')
+
+        param_grid = {
+            'max_depth': [None, 2, 3, 4, 5, 6, 8, 10],
+            'min_samples_split': [2, 5, 10, 20],
+            'min_samples_leaf': [1, 2, 5, 10],
+            'criterion': ['gini', 'entropy'],
+            'ccp_alpha': [0.0, 0.001, 0.005, 0.01, 0.02]
+        }
+
+        cv = StratifiedKFold(
+            n_splits=5,
+            shuffle=True,
+            random_state=0
+        )
+
+        grid = GridSearchCV(
+            estimator=DecisionTreeClassifier(random_state=0),
+            param_grid=param_grid,
+            scoring='recall',
+            cv=cv,
+            n_jobs=-1
+        )
+
+        grid.fit(self.X_train, self.y_train)
+
+        logger.info(f'Best parameters: {grid.best_params_}')
+        logger.info(f'Best CV score: {grid.best_score_:.4f}')
+
+        self.model = grid.best_estimator_
+        print(self.model)
+
+    def feature_importance_analysis(self):
+        if self.model is None:
+            raise ValueError("Model not trained yet.")
+
+        importance = self.model.feature_importances_
+        features = self.X_train.columns
+
+        feature_importance_df = (
+            pd.DataFrame({
+                'feature': features,
+                'importance': importance
+            })
+            .sort_values(by='importance', ascending=False)
+            .reset_index(drop=True)
+        )
+
+        logger.info(f"Feature importance calculated: {feature_importance_df}")
+
+    def predict_model(self):
+        logger.info('Predict Test Data')
+        self.predict_values = self.model.predict(self.X_test)
+
+    def evaluating_model(self):
+        logger.info("Looking if our model is good to use") # PRECISA OLHAR COMO PLOTAR ISSO 
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=confusion_matrix(self.y_test, self.predict_values),
+            display_labels=['Ham', 'Spam']
+        )
+        disp.plot(cmap='Blues')
+        plt.title("Confusion Matrix - Spam Classification")
+        plt.show()
+
+        logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
+        logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
+        logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
+
     def plot_tree(self):
         pass  # Criar o plot para a trees
 
 
 classification = DecisionTreesClassification()
 classification.assumptions_tree()
-
+classification.train_test()
+classification.fitting_data()
+classification.feature_importance_analysis()
+classification.predict_model()
+classification.evaluating_model()
 
 exit()
 
-dt = DecisionTreeClassifier(max_depth=2, ccp_alpha=0.01,criterion='gini')
-
-
-classifier.fit(training_data, training_labels)
-predictions = classifier.predict(test_data)
-print(classifier.score(test_data, test_labels))
 
 
 
