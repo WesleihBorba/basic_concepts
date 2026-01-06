@@ -25,8 +25,7 @@ class DecisionTreesClassification:
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
         self.model, self.predict_values = None, None
 
-        self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\'
-                                'Fases da vida\\Fase I\\Repository Projects\\files\\loan.csv') # Deixar apenas o arquivo
+        self.data = pd.read_csv('files\\loan.csv')
 
     def assumptions_tree(self):
         logger.info('Transforming string in numeric')
@@ -156,17 +155,3 @@ classification.feature_importance_analysis()
 classification.predict_model()
 classification.evaluating_model()
 classification.plot_tree()
-
-exit()
-
-
-# Entender como é feito a separação de cada item nos nó. Por exemplo 2 na esquerda, 3 na direita
-# Entender como interpretar decision tree
-# Quais modelos de evaluation usar para o tipo de dados que eu usar
-# Entender o que é o Depth max
-# Entender e usar o pruning
-# Como interpretar o resultado da Decision Trees, colocar isso no arquivo também
-
-
-## https://www.kaggle.com/datasets/sujithmandala/simple-loan-classification-dataset/data
-## https://www.kaggle.com/datasets/itsmesunil/bank-loan-modelling
