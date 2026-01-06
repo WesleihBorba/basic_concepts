@@ -2,7 +2,7 @@
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder, LabelEncoder
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 import logging
@@ -117,21 +117,35 @@ class DecisionTreesClassification:
         self.predict_values = self.model.predict(self.X_test)
 
     def evaluating_model(self):
-        logger.info("Looking if our model is good to use") # PRECISA OLHAR COMO PLOTAR ISSO 
+        logger.info("Looking if our model is good to use")
         disp = ConfusionMatrixDisplay(
             confusion_matrix=confusion_matrix(self.y_test, self.predict_values),
-            display_labels=['Ham', 'Spam']
+            display_labels=['Approved', 'Denied']
         )
         disp.plot(cmap='Blues')
-        plt.title("Confusion Matrix - Spam Classification")
+        plt.title("Confusion Matrix - Loan Credit")
         plt.show()
 
         logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
         logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
         logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
 
-    def plot_tree(self):
-        pass  # Criar o plot para a trees
+    def plot_tree(self, max_depth=None):
+        logger.info("Plotting Tree")
+        plt.figure(figsize=(20, 10))
+
+        plot_tree(
+            self.model,
+            feature_names=self.X_train.columns,
+            class_names=['Denied', 'Approved'],
+            filled=True,
+            rounded=True,
+            max_depth=max_depth,
+            fontsize=10
+        )
+
+        plt.title(f"Decision Tree (max_depth visualized = {max_depth})")
+        plt.show()
 
 
 classification = DecisionTreesClassification()
@@ -141,26 +155,11 @@ classification.fitting_data()
 classification.feature_importance_analysis()
 classification.predict_model()
 classification.evaluating_model()
+classification.plot_tree()
 
 exit()
 
 
-
-
-
-
-
-
-
-def information_gain(starting_labels, split_labels):
-    info_gain = gini(starting_labels)
-    for subset in split_labels:
-      info_gain -= gini(subset) * len(subset) / len(starting_labels)
-    return info_gain
-
-
-
-# Usar debug no information gain ou Gini impurity
 # Entender como é feito a separação de cada item nos nó. Por exemplo 2 na esquerda, 3 na direita
 # Entender como interpretar decision tree
 # Quais modelos de evaluation usar para o tipo de dados que eu usar
