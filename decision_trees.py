@@ -91,7 +91,7 @@ class DecisionTreesClassification:
         logger.info(f'Best CV score: {grid.best_score_:.4f}')
 
         self.model = grid.best_estimator_
-        print(self.model)
+        logger.info(f'Best Estimator: {self.model}')
 
     def feature_importance_analysis(self):
         if self.model is None:
