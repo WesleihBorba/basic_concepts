@@ -1,8 +1,10 @@
-# Goal:
+# Goal: Create a Random Forest, predict loan credit
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import OrdinalEncoder, LabelEncoder
+from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.inspection import PartialDependenceDisplay
 import pandas as pd
+import matplotlib.pyplot as plt
 import logging
 import sys
 
@@ -22,37 +24,13 @@ class RandomForestClassification:
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
         self.model, self.predict_values = None, None
 
-        self.data = pd.read_csv('files\\loan.csv')
-
-
-
-
-
-    def assumptions_tree(self):
-        logger.info('Transforming string in numeric')
-        map_loan_status = {'Approved': 1, 'Denied': 0}
-        map_marital_status = {'Married': 1, 'Single': 0}
-        map_gender = {'Male': 1, 'Female': 0}
-
-        encoder_ordinal = OrdinalEncoder(categories=[["High School", "Associate's", "Bachelor's",
-                                                      "Master's", "Doctoral"]])
-
-        encoder = LabelEncoder()
-
-        logger.debug(f'Changes of values, loan: {map_loan_status}, marital: {map_marital_status}, gender{map_gender},'
-                     f'Education Level: {encoder_ordinal}')
-
-        self.data['gender'] = self.data['gender'].map(map_gender)
-        self.data['marital_status'] = self.data['marital_status'].map(map_marital_status)
-        self.data['loan_status'] = self.data['loan_status'].map(map_loan_status)
-
-        self.data['occupation'] = encoder.fit_transform(self.data['occupation'])
-        self.data[['education_level']] = encoder_ordinal.fit_transform(self.data[['education_level']])
+        self.data = pd.read_csv('files\\bankloan.csv')
 
     def train_test(self):
         logger.info("Divide train and test")
-        X = self.data.drop(columns={'loan_status'})
-        y = self.data['loan_status']
+        self.data.drop(columns=["ID"], inplace=True)
+        X = self.data.drop(columns={'Personal.Loan'})
+        y = self.data['Personal.Loan']
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             X, y,
             test_size=0.2,
@@ -62,14 +40,15 @@ class RandomForestClassification:
         logger.debug(f"Train: {self.X_train.shape}, Test: {self.X_test.shape}")
 
     def fitting_data(self):
-        logger.info('Finding best hyperparameters for Decision Tree')
+        logger.info('Finding best hyperparameters for Random Forest')
 
         param_grid = {
-            'max_depth': [None, 2, 3, 4, 5, 6, 8, 10],
-            'min_samples_split': [2, 5, 10, 20],
-            'min_samples_leaf': [1, 2, 5, 10],
-            'criterion': ['gini', 'entropy'],
-            'ccp_alpha': [0.0, 0.001, 0.005, 0.01, 0.02]
+            'n_estimators': [100, 200, 300],
+            'max_depth': [None, 5, 10, 15],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 5],
+            'max_features': ['sqrt', 'log2'],
+            'class_weight': [None, 'balanced']
         }
 
         cv = StratifiedKFold(
@@ -79,7 +58,7 @@ class RandomForestClassification:
         )
 
         grid = GridSearchCV(
-            estimator=DecisionTreeClassifier(random_state=0),
+            estimator=RandomForestClassifier(random_state=0, n_jobs=-1, criterion='gini', bootstrap=True),
             param_grid=param_grid,
             scoring='recall',
             cv=cv,
@@ -112,7 +91,48 @@ class RandomForestClassification:
 
         logger.info(f"Feature importance calculated: {feature_importance_df}")
 
-# https://www.kaggle.com/code/prashant111/random-forest-classifier-tutorial
+    def predict_model(self):
+        logger.info('Predict Test Data')
+        self.predict_values = self.model.predict(self.X_test)
+
+    def evaluating_model(self):
+        logger.info("Looking if our model is good to use")
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=confusion_matrix(self.y_test, self.predict_values),
+            display_labels=['Approved', 'Denied']
+        )
+        disp.plot(cmap='Blues')
+        plt.title("Confusion Matrix - Loan Credit")
+        plt.show()
+
+        logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
+        logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
+        logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
+
+    def partial_dependence_plot(self):
+        if self.model is None:
+            raise ValueError("Model not trained yet.")
+
+        features = ['Income', 'CCAvg']
+        logger.info(f"Generating Partial Dependence Plot for features: {features}")
+
+        PartialDependenceDisplay.from_estimator(
+            estimator=self.model,
+            X=self.X_train,
+            features=features,
+            kind='average',
+            grid_resolution=50
+        )
+
+        plt.suptitle("Partial Dependence Plot - Loan Credit", fontsize=14)
+        plt.tight_layout()
+        plt.show()
 
 
-classifier = RandomForestClassifier(n_estimators = 100)
+classification = RandomForestClassification()
+classification.train_test()
+classification.fitting_data()
+classification.feature_importance_analysis()
+classification.predict_model()
+classification.evaluating_model()
+classification.partial_dependence_plot()
