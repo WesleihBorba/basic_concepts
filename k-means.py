@@ -17,7 +17,7 @@ formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
-# https://www.kaggle.com/datasets/vjchoudhary7/customer-segmentation-tutorial-in-python
+
 class KMeansClassifier:
     def __init__(self):
         pass
