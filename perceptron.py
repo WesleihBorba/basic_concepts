@@ -1,9 +1,13 @@
 # Goal:
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
+import statsmodels.api as sm
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.datasets import make_classification
+from sklearn.linear_model import Perceptron
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+import numpy as np
 import logging
 import sys
 
@@ -18,83 +22,101 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-
-
-
-
-# https://www.kaggle.com/datasets/basu369victor/prediction-of-asteroid-diameter
-# Talvez não fazer ou fazer usando K_nearest-neightbours_classifier para spam OU Aprovar crédito vs negar, tem no decision tree
-# https://chatgpt.com/c/69702242-054c-8328-a96b-955826480290
-
-
-
-
-
-
 class PerceptronClassifier:
     def __init__(self):
-        self.normalization_data, self.scaler = None, None
-        self.model, self.predict_values = None, None
+        self.train, self.test = None, None
+        self.predict_values, self.fit_regression = None, None
+        self.resid = None
 
-        self.data = pd.read_csv('files\\Mall_Customers.csv')
+        self.X, self.y = make_classification(
+            n_samples=15000,
+            n_features=2,
+            n_redundant=0,
+            n_clusters_per_class=1,
+            class_sep=2,
+            random_state=42
+        )
 
-    def transform_data(self):
-        logger.info('Transforming Gender in 1 and 0')
-        map_gender = {'Male': 1, 'Female': 0}
-        self.data['Gender'] = self.data['Gender'].map(map_gender)
-        logger.debug(f'Changes of values, Mall Customers: gender{map_gender}')
+        self.data = pd.DataFrame(self.X, columns=["income", "credit_score"])
+        self.data["approved"] = self.y
 
-        self.data.drop(columns={'CustomerID', 'Gender'}, inplace=True)
-        self.data.rename(columns={'Annual Income (k$)': 'annual_income', 'Spending Score (1-100)': 'spending_score'},
-                         inplace=True)
+    def plot_decision_boundary(self):
+        X = self.data[["income", "credit_score"]].values
+        y = self.data["approved"].values
 
-    def normalization(self):
-        logger.info('Normalization values')
-        self.scaler = StandardScaler()
-        self.normalization_data = pd.DataFrame(self.scaler.fit_transform(self.data), columns=self.data.columns)
+        model = Perceptron()
+        model.fit(X, y)
 
-    def elbow_silhouette_method(self):
-        logger.info('Elbow: how close the points are within the same cluster')
-        logger.info('Silhouette: how far apart the clusters are from each other')
-        inertia = []
-        sil_scores = []
-        k_range = range(2, 11)
+        x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+        y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
 
-        for k in k_range:
-            kmeans = KMeans(n_clusters=k, random_state=42).fit(self.normalization_data)
-            inertia.append(kmeans.inertia_)
-            sil_scores.append(silhouette_score(self.normalization_data, kmeans.labels_))
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, 200),
+            np.linspace(y_min, y_max, 200)
+        )
 
-        fig, ax1 = plt.subplots(figsize=(6, 4))
+        Z = model.predict(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
 
-        # Primary y-axis: Inertia (Elbow Method)
-        ax1.plot(k_range, inertia, 'bo-', label='Inertia (Elbow)')
-        ax1.set_xlabel('Number of Clusters k')
-        ax1.set_ylabel('Inertia', color='b')
-        ax1.tick_params(axis='y', labelcolor='b')
-
-        # Secondary y-axis: Silhouette Score
-        ax2 = ax1.twinx()
-        ax2.plot(k_range, sil_scores, 'go-', label='Silhouette Score')
-        ax2.set_ylabel('Silhouette Score', color='g')
-        ax2.tick_params(axis='y', labelcolor='g')
-
-        # Title and layout
-        plt.title('Elbow Method vs. Silhouette Score')
-        fig.tight_layout()
+        plt.contourf(xx, yy, Z, alpha=0.2, cmap="bwr")
+        plt.scatter(X[:, 0], X[:, 1], c=y, cmap="bwr", edgecolor="k")
+        plt.xlabel("income")
+        plt.ylabel("credit_score")
+        plt.title("Perceptron Decision Boundary")
         plt.show()
 
-    def fitting_data(self):
-        logger.info('Fitting with KMeans ++')
-        self.model = KMeans(
-            n_clusters=5,
-            init='k-means++',
-            random_state=42
-        ).fit(self.normalization_data)
+    def train_test(self):
+        logger.info("Divide train and test")
+        self.train, self.test = train_test_split(self.data, test_size=0.3,
+                                                 random_state=42)
+        logger.debug(f"Shapes - test: {self.test.shape}, train: {self.train.shape}")
+
+    def fit_model(self):
+        logger.info('Starting to fit our regression')
+        try:
+            model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
+            self.fit_regression = model.fit()
+            logger.info("Success!")
+        except Exception as e:
+            logger.error(f"Fail to training: {e}")
+
+        logger.info(f"Coefficients: {self.fit_regression.params}")
+
+    def predict_model(self):
+        logger.info('Predict Test Data')
+        self.predict_values = self.fit_regression.predict(self.test[['education', 'working_time']])
+        self.resid = self.test['income'] - self.predict_values
+
+    def evaluating_model(self):
+        logger.info("Looking if our model is good to use")
+        mse = mean_squared_error(self.test['income'], self.predict_values)
+        r2 = r2_score(self.test['income'], self.predict_values)
+
+        logger.info(f'Mean Squared Error: {mse}')
+        logger.info(f'R-squared: {r2}')
+
+    def plot_multiple_regression(self):
+        sample = self.test.sample(50)  # 50 random points
+        y_true = sample['income']
+        y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
+
+        plt.scatter(y_true, y_predict, alpha=0.7)
+        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
+
+        for i in range(len(sample)):
+            plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
+
+        plt.xlabel('Real value (income)')
+        plt.ylabel('Predict value (income)')
+        plt.title('Comparison between actual and predicted values (with errors)')
+        plt.legend()
+        plt.show()
 
 
-classification = PerceptronClassifier()
-classification.transform_data()
-classification.normalization()
-classification.elbow_silhouette_method()
-classification.fitting_data()
+class_regression = PerceptronClassifier()
+class_regression.plot_decision_boundary()
+class_regression.train_test()
+class_regression.fit_model()
+class_regression.predict_model()
+class_regression.evaluating_model()
+class_regression.plot_multiple_regression()
