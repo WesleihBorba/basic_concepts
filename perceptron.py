@@ -5,8 +5,9 @@ import statsmodels.api as sm
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.datasets import make_classification
 from sklearn.linear_model import Perceptron
-from sklearn.model_selection import train_test_split
-import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import numpy as np
 import logging
 import sys
@@ -24,9 +25,7 @@ logger.addHandler(stream_handler)
 
 class PerceptronClassifier:
     def __init__(self):
-        self.train, self.test = None, None
-        self.predict_values, self.fit_regression = None, None
-        self.resid = None
+        self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
 
         self.X, self.y = make_classification(
             n_samples=15000,
@@ -67,11 +66,44 @@ class PerceptronClassifier:
 
     def train_test(self):
         logger.info("Divide train and test")
-        self.train, self.test = train_test_split(self.data, test_size=0.3,
-                                                 random_state=42)
-        logger.debug(f"Shapes - test: {self.test.shape}, train: {self.train.shape}")
+        X = self.data.drop(columns={'approved'})
+        y = self.data['approved']
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y,
+            test_size=0.2,
+            stratify=y,
+            random_state=0
+        )
+        logger.debug(f"Train: {self.X_train.shape}, Test: {self.X_test.shape}")
 
-    def fit_model(self):
+    def parameters(self):
+        logger.info('Finding best hyperparameters for Perceptron')
+
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            ('percep', Perceptron(random_state=42))
+        ])
+
+        param_grid = {
+            'percep__alpha': 10.0 ** -np.arange(1, 7),
+            'percep__penalty': ['l2', 'l1', 'elasticnet'],
+            'percep__eta0': [0.1, 0.5, 1.0]  # Common values, you can expand this
+        }
+
+        grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
+        grid_search.fit(self.X_train, self.y_train)
+
+        logger.info(f"Best parameters found: {grid_search.best_params_}")
+        logger.info(f"Best cross-validation score: {grid_search.best_score_:.2f}")
+
+        best_model = grid_search.best_estimator_
+        test_score = best_model.score(self.X_test, self.y_test)
+        logger.info(f"Test set accuracy with best model: {test_score:.2f}")
+
+
+
+
+    def fitting(self):
         logger.info('Starting to fit our regression')
         try:
             model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
@@ -115,8 +147,8 @@ class PerceptronClassifier:
 
 class_regression = PerceptronClassifier()
 class_regression.plot_decision_boundary()
-class_regression.train_test()
-class_regression.fit_model()
-class_regression.predict_model()
-class_regression.evaluating_model()
-class_regression.plot_multiple_regression()
+#class_regression.train_test()
+#class_regression.fit_model()
+#class_regression.predict_model()
+#class_regression.evaluating_model()
+#class_regression.plot_multiple_regression()
