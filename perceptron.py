@@ -1,8 +1,7 @@
-# Goal:
+# Goal: Create a Perceptron, predict loan credit
 import pandas as pd
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.datasets import make_classification
 from sklearn.linear_model import Perceptron
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -26,6 +25,7 @@ logger.addHandler(stream_handler)
 class PerceptronClassifier:
     def __init__(self):
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
+        self.best_model, self.predict_values = None, None
 
         self.X, self.y = make_classification(
             n_samples=15000,
@@ -40,7 +40,9 @@ class PerceptronClassifier:
         self.data["approved"] = self.y
 
     def plot_decision_boundary(self):
-        X = self.data[["income", "credit_score"]].values
+        X = self.data[["income", "credit_score"]].values.copy()
+        scale = StandardScaler()
+        X = scale.fit_transform(X)
         y = self.data["approved"].values
 
         model = Perceptron()
@@ -76,7 +78,7 @@ class PerceptronClassifier:
         )
         logger.debug(f"Train: {self.X_train.shape}, Test: {self.X_test.shape}")
 
-    def parameters(self):
+    def parameters_to_fitting(self):
         logger.info('Finding best hyperparameters for Perceptron')
 
         pipeline = Pipeline([
@@ -87,7 +89,7 @@ class PerceptronClassifier:
         param_grid = {
             'percep__alpha': 10.0 ** -np.arange(1, 7),
             'percep__penalty': ['l2', 'l1', 'elasticnet'],
-            'percep__eta0': [0.1, 0.5, 1.0]  # Common values, you can expand this
+            'percep__eta0': [0.1, 0.5, 1.0]
         }
 
         grid_search = GridSearchCV(pipeline, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
@@ -96,59 +98,32 @@ class PerceptronClassifier:
         logger.info(f"Best parameters found: {grid_search.best_params_}")
         logger.info(f"Best cross-validation score: {grid_search.best_score_:.2f}")
 
-        best_model = grid_search.best_estimator_
-        test_score = best_model.score(self.X_test, self.y_test)
+        self.best_model = grid_search.best_estimator_
+        test_score = self.best_model.score(self.X_test, self.y_test)
         logger.info(f"Test set accuracy with best model: {test_score:.2f}")
-
-
-
-
-    def fitting(self):
-        logger.info('Starting to fit our regression')
-        try:
-            model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
-            self.fit_regression = model.fit()
-            logger.info("Success!")
-        except Exception as e:
-            logger.error(f"Fail to training: {e}")
-
-        logger.info(f"Coefficients: {self.fit_regression.params}")
 
     def predict_model(self):
         logger.info('Predict Test Data')
-        self.predict_values = self.fit_regression.predict(self.test[['education', 'working_time']])
-        self.resid = self.test['income'] - self.predict_values
+        self.predict_values = self.best_model.predict(self.X_test)
 
     def evaluating_model(self):
         logger.info("Looking if our model is good to use")
-        mse = mean_squared_error(self.test['income'], self.predict_values)
-        r2 = r2_score(self.test['income'], self.predict_values)
-
-        logger.info(f'Mean Squared Error: {mse}')
-        logger.info(f'R-squared: {r2}')
-
-    def plot_multiple_regression(self):
-        sample = self.test.sample(50)  # 50 random points
-        y_true = sample['income']
-        y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
-
-        plt.scatter(y_true, y_predict, alpha=0.7)
-        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
-
-        for i in range(len(sample)):
-            plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
-
-        plt.xlabel('Real value (income)')
-        plt.ylabel('Predict value (income)')
-        plt.title('Comparison between actual and predicted values (with errors)')
-        plt.legend()
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=confusion_matrix(self.y_test, self.predict_values),
+            display_labels=['Denied', 'Approved']
+        )
+        disp.plot(cmap='Blues')
+        plt.title("Confusion Matrix - Loan Credit")
         plt.show()
 
+        logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
+        logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
+        logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
 
-class_regression = PerceptronClassifier()
-class_regression.plot_decision_boundary()
-#class_regression.train_test()
-#class_regression.fit_model()
-#class_regression.predict_model()
-#class_regression.evaluating_model()
-#class_regression.plot_multiple_regression()
+
+class_perceptron = PerceptronClassifier()
+class_perceptron.plot_decision_boundary()
+class_perceptron.train_test()
+class_perceptron.parameters_to_fitting()
+class_perceptron.predict_model()
+class_perceptron.evaluating_model()
