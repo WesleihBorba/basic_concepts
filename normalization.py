@@ -1,9 +1,10 @@
-# Goal: Understanding types of normalization
+# Goal: Understanding types of normalization, and discover bins in histogram
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 
 class Normalization:
@@ -14,6 +15,7 @@ class Normalization:
             "log_skew": np.random.lognormal(mean=2, sigma=0.7, size=1000),
             "gamma_skew": np.random.gamma(shape=2, scale=3, size=1000)
         })
+        self.data_normalized = None
 
     @staticmethod
     def plot_comparison(original_df, transformed_df, title):
@@ -40,11 +42,25 @@ class Normalization:
     def z_score(self):
         zscore = StandardScaler()
         data = pd.DataFrame(zscore.fit_transform(self.skew_data), columns=self.skew_data.columns)
+        self.data_normalized = data['log_skew'].copy()
         return data
 
     def log_transformation(self):
         data = pd.DataFrame(np.log(self.skew_data))
         return data
+
+    def bins(self):
+        sns.histplot(data=self.data_normalized, bins='sturges')
+        plt.title('Sturges methods')
+        plt.show()
+
+        sns.histplot(data=self.data_normalized, bins='fd')
+        plt.title('Freedman Method')
+        plt.show()
+
+        sns.histplot(data=self.data_normalized, bins='sqrt')
+        plt.title('SQRT Method')
+        plt.show()
 
 
 norm_class = Normalization()
@@ -60,3 +76,6 @@ norm_class.plot_comparison(norm_class.skew_data, data_zscore, title="Z-score")
 # Log Transformation
 data_log = norm_class.log_transformation()
 norm_class.plot_comparison(norm_class.skew_data, data_log, title="Log Transform")
+
+# Choosing correct bins in our data
+norm_class.bins()
