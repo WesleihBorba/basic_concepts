@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.pipeline import Pipeline
 import logging
 import sys
@@ -26,7 +26,7 @@ class NearstNeighborsRegression:
     def __init__(self):
         self.X_train, self.X_test, self.y_train, self.y_test = None, None, None, None
         self.best_k, self.cv_scores = None, None
-        self.model, self.y_predict, self.y_prob = None, None, None
+        self.model, self.y_predict = None, None
 
         np.random.seed(42)
         n = 10_000
