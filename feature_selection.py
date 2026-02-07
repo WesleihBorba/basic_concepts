@@ -40,6 +40,8 @@ class FilterMethods:
         logger.debug(f"columns that remained: {list(selected_cols)}")
         return df_reduced
 
+    def correlation(self):
+        pass
 
 
 # Criar os dados
