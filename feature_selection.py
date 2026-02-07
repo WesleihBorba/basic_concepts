@@ -1,5 +1,5 @@
 # Goal: To learn some filtering methods for regression or classification models
-from sklearn.feature_selection import VarianceThreshold
+from sklearn.feature_selection import VarianceThreshold, f_regression, SelectKBest
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
@@ -50,6 +50,23 @@ class FilterMethods:
         logger.info("You could use correlation to compare with target variable, then you'll keep this variables")
         return df_reduced
 
+    def test_f_regression(self):
+        logger.info('Use to know relation between dependence variable and independence variable in regression')
+        selector = SelectKBest(score_func=f_regression, k=5)
+        X = self.regression_data.drop(columns=['target'])
+        y = self.regression_data['target']
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced = X[select_columns].copy()
+        df_reduced['target'] = y.values
+
+        scores = pd.DataFrame({
+            'Feature': self.regression_data.columns,
+            'F-Score': selector.scores_,
+            'P-Value': selector.pvalues_
+        }).sort_values(by='F-Score', ascending=False)
+        logger.debug(f'Important columns: {scores}')
+        return df_reduced
 
 # Criar os dados
 regression_data = None
