@@ -41,7 +41,14 @@ class FilterMethods:
         return df_reduced
 
     def correlation(self):
-        pass
+        logger.info('Look correlation of each dependency variables in regression (multicollinearity)')
+        corr_matrix = self.regression_data.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+        to_drop = [column for column in upper.columns if any(upper[column] > 0.85)]
+        df_reduced = self.regression_data.drop(columns=to_drop)
+        logger.debug(f"Removing columns with 0.85 of correlation in regression: {to_drop}")
+        logger.info("You could use correlation to compare with target variable, then you'll keep this variables")
+        return df_reduced
 
 
 # Criar os dados
@@ -65,4 +72,4 @@ classification_data = None
 #self.data = pd.DataFrame(self.X, columns=["income", "credit_score"])
 #self.data["approved"] = self.y
 class_filter = FilterMethods()
-
+#class_filter.variance_threshold()
