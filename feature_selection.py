@@ -26,6 +26,8 @@ class FilterMethods:
 
     def normalization(self):
         logger.info('Adjust data to use some methods')
+        logger.info("If you will use this code, we need to divide in train test before normalization"
+                    "Don't normalization all dataset, i'm using to show filters methods examples (not real life)")
         self.scaler = StandardScaler()
         self.normalization_regression = pd.DataFrame(self.scaler.fit_transform(self.regression_data),
                                                      columns=self.regression_data .columns)
