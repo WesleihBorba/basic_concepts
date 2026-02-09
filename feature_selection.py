@@ -1,5 +1,6 @@
 # Goal: To learn some filtering methods for regression or classification models
-from sklearn.feature_selection import VarianceThreshold, f_regression, SelectKBest
+from sklearn.feature_selection import (VarianceThreshold, f_regression, SelectKBest, mutual_info_classif,
+                                       mutual_info_regression)
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
@@ -67,6 +68,43 @@ class FilterMethods:
         }).sort_values(by='F-Score', ascending=False)
         logger.debug(f'Important columns: {scores}')
         return df_reduced
+
+    def mutual_information(self):
+        logger.info('Measuring the statistical dependence between two variables')
+        logger.info('Looking classification')
+        X = self.normalization_classification.drop(columns=['target'])
+        y = self.normalization_classification['target']
+        scores = mutual_info_classif(X, y)
+
+        mi_scores = pd.Series(scores, index=X.columns)
+        mi_scores = mi_scores.sort_values(ascending=False)
+
+        selector = SelectKBest(mutual_info_classif, k=5)
+        X_new = selector.fit_transform(X, y)
+        print(X_new)
+        print(mi_scores)
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced_classify = X[select_columns].copy()
+        df_reduced_classify['target'] = y.values
+
+        logger.info('Looking Regression')
+        X = self.normalization_regression.drop(columns=['target'])
+        y = self.normalization_regression['target']
+        scores = mutual_info_classif(X, y)
+
+        mi_scores = pd.Series(scores, index=X.columns)
+        mi_scores = mi_scores.sort_values(ascending=False)
+
+        selector = SelectKBest(mutual_info_regression, k=5)
+        X_new = selector.fit_transform(X, y)
+        print(X_new)
+        print(mi_scores)
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced_regression = X[select_columns].copy()
+        df_reduced_regression['target'] = y.values
+        return df_reduced_classify, df_reduced_regression
 
 # Criar os dados
 regression_data = None
