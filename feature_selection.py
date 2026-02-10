@@ -1,6 +1,8 @@
 # Goal: To learn some filtering methods for regression or classification models
 from sklearn.feature_selection import (VarianceThreshold, f_regression, SelectKBest, mutual_info_classif,
-                                       mutual_info_regression)
+                                       mutual_info_regression, RFE)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import numpy as np
@@ -56,8 +58,8 @@ class FilterMethods:
     def test_f_regression(self):
         logger.info('Use to know relation between dependence variable and independence variable in regression')
         selector = SelectKBest(score_func=f_regression, k=5)
-        X = self.regression_data.drop(columns=['target'])
-        y = self.regression_data['target']
+        X = self.normalization_regression.drop(columns=['target'])
+        y = self.normalization_regression['target']
 
         select_columns = X.columns[selector.get_support()]
         df_reduced = X[select_columns].copy()
@@ -107,6 +109,40 @@ class FilterMethods:
         df_reduced_regression = X[select_columns].copy()
         df_reduced_regression['target'] = y.values
         return df_reduced_classify, df_reduced_regression
+
+    def recursive_feature_elimination(self):
+        logger.info('RFE working with Random Forest for classification')
+        model_classification = RandomForestClassifier(n_estimators=10, random_state=42)
+        selector = RFE(estimator=model_classification, n_features_to_select=3, step=1)
+
+        X = self.normalization_classification.drop(columns=['target'])
+        y = self.normalization_classification['target']
+
+        selector.fit(X, y)
+
+        cols_keep = self.classification_data.columns[selector.support_]
+        df_reduced_classify = self.classification_data[cols_keep].copy()
+
+        logger.debug(f"Features kept classification: {list(cols_keep)}")
+        logger.debug(f"Ranking features classification (1 is the best): {selector.ranking_}")
+
+        logger.info('RFE working with Multiple Regression for Regression')
+        model_regression = LinearRegression()
+        selector = RFE(estimator=model_regression, n_features_to_select=3, step=1)
+
+        X = self.normalization_regression.drop(columns=['target'])
+        y = self.normalization_regression['target']
+
+        selector.fit(X, y)
+
+        cols_keep = self.normalization_regression.columns[selector.support_]
+        df_reduced_regression = self.normalization_regression[cols_keep].copy()
+
+        logger.debug(f"Features kept Regression: {list(cols_keep)}")
+        logger.debug(f"Ranking features Regression (1 is the best): {selector.ranking_}")
+        return df_reduced_classify, df_reduced_regression
+
+
 
 # Criar os dados
 regression_data = None
