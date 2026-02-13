@@ -1,6 +1,6 @@
 # Goal: To learn some filtering methods for regression or classification models
 from sklearn.feature_selection import (VarianceThreshold, f_regression, SelectKBest, mutual_info_classif,
-                                       mutual_info_regression, RFE)
+                                       mutual_info_regression, RFE, SequentialFeatureSelector)
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
@@ -142,6 +142,25 @@ class FilterMethods:
         logger.debug(f"Ranking features Regression (1 is the best): {selector.ranking_}")
         return df_reduced_classify, df_reduced_regression
 
+    def sequential_feature_selection(self):
+        logger.info('SFE working with Random Forest for classification')
+        model_classification = RandomForestClassifier(n_estimators=10, random_state=42)
+        sfs_forward = SequentialFeatureSelector(
+            model_classification,
+            n_features_to_select=2,
+            direction='forward',
+            scoring='accuracy',
+            cv=5
+        )
+
+        X = self.normalization_classification.drop(columns=['target'])
+        y = self.normalization_classification['target']
+
+        sfs_forward.fit(X, y)
+
+        cols_keep = self.classification_data.columns[sfs_forward.support_]
+        df_reduced = self.classification_data[cols_keep].copy()
+        return df_reduced
 
 
 # Criar os dados
