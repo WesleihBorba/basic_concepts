@@ -2,6 +2,7 @@
 from sklearn.feature_selection import (VarianceThreshold, f_regression, SelectKBest, mutual_info_classif,
                                        mutual_info_regression, RFE, SequentialFeatureSelector)
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
@@ -162,6 +163,17 @@ class FilterMethods:
         cols_keep = self.classification_data.columns[sfs_forward.support_]
         df_reduced = self.classification_data[cols_keep].copy()
         return df_reduced
+
+    def feature_importance_trees(self):
+        logger.info('Selecting the best features using Decision Trees such as the Gini with criteria.')
+        X = self.normalization_classification.drop(columns=['target'])
+        y = self.normalization_classification['target']
+        y = [int(label) for label in y]
+
+        clf = DecisionTreeClassifier(criterion='gini')
+        clf = clf.fit(X, y)
+        feature_important = clf.feature_importances_
+        print(feature_important) # Trocar para o dataframe correto
 
 
 # Criar os dados
