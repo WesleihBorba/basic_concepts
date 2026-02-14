@@ -112,6 +112,7 @@ class FilterMethods:
 
     def recursive_feature_elimination(self):
         logger.info('RFE working with Random Forest for classification')
+        logger.info('We could use RFECV to discover how much features we will keep')
         model_classification = RandomForestClassifier(n_estimators=10, random_state=42)
         selector = RFE(estimator=model_classification, n_features_to_select=3, step=1)
 
