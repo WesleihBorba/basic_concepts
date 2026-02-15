@@ -158,40 +158,41 @@ class FilterMethods:
         df_reduced_regression = X_reg[select_columns].copy()
         df_reduced_regression['income'] = y_reg.values
         columns_dropped_regression = list(set(X_reg.columns) - set(select_columns))
-        logger.debug(f"Columns to Drop classify: {columns_dropped_regression}")
+        logger.debug(f"Columns to Drop regression: {columns_dropped_regression}")
 
     def recursive_feature_elimination(self):
         logger.info('RFE working with Random Forest for classification')
         logger.info('We could use RFECV to discover how much features we will keep')
         model_classification = RandomForestClassifier(n_estimators=10, random_state=42)
-        selector = RFE(estimator=model_classification, n_features_to_select=3, step=1)
+        selector_class = RFE(estimator=model_classification, n_features_to_select=4, step=1)
 
-        X = self.normalization_classification.drop(columns=['target'])
-        y = self.normalization_classification['target']
+        X_class = self.normalization_classification.drop(columns=['approved'])
+        y_class = self.normalization_classification['approved']
 
-        selector.fit(X, y)
+        selector_class.fit(X_class, y_class)
 
-        cols_keep = self.classification_data.columns[selector.support_]
-        df_reduced_classify = self.classification_data[cols_keep].copy()
+        cols_keep = X_class.columns[selector_class.support_]
+        df_reduced_classify = X_class[cols_keep].copy()
 
-        logger.debug(f"Features kept classification: {list(cols_keep)}")
-        logger.debug(f"Ranking features classification (1 is the best): {selector.ranking_}")
+        columns_dropped_classify = list(set(X_class.columns) - set(cols_keep))
+        logger.debug(f"Columns to Drop classify: {columns_dropped_classify}")
+        logger.debug(f"Ranking features classification (1 is the best): {selector_class.ranking_}")
 
         logger.info('RFE working with Multiple Regression for Regression')
         model_regression = LinearRegression()
-        selector = RFE(estimator=model_regression, n_features_to_select=3, step=1)
+        selector_reg = RFE(estimator=model_regression, n_features_to_select=3, step=1)
 
-        X = self.normalization_regression.drop(columns=['target'])
-        y = self.normalization_regression['target']
+        X_reg = self.normalization_regression.drop(columns=['income'])
+        y_reg = self.normalization_regression['income']
 
-        selector.fit(X, y)
+        selector_reg.fit(X_reg, y_reg)
 
-        cols_keep = self.normalization_regression.columns[selector.support_]
+        cols_keep = X_reg.columns[selector_reg.support_]
         df_reduced_regression = self.normalization_regression[cols_keep].copy()
 
-        logger.debug(f"Features kept Regression: {list(cols_keep)}")
-        logger.debug(f"Ranking features Regression (1 is the best): {selector.ranking_}")
-        return df_reduced_classify, df_reduced_regression
+        columns_dropped_regression = list(set(X_reg.columns) - set(cols_keep))
+        logger.debug(f"Columns to Drop Regression: {columns_dropped_regression}")
+        logger.debug(f"Ranking features Regression (1 is the best): {selector_reg.ranking_}")
 
     def sequential_feature_selection(self):
         logger.info('SFE working with Random Forest for classification')
@@ -231,3 +232,4 @@ class_filter.variance_threshold()
 class_filter.correlation()
 class_filter.test_f_regression()
 class_filter.mutual_information()
+class_filter.recursive_feature_elimination()
