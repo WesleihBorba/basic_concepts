@@ -72,8 +72,8 @@ class FilterMethods:
         selector.fit(X)
         selected_cols = X.columns[selector.get_support()]
         df_reduced = X[selected_cols].copy()
-        logger.debug(f"Origin columns: {list(self.normalization_regression.columns)}")
-        logger.debug(f"columns that remained: {list(selected_cols)}")
+        columns_dropped = list(set(X.columns) - set(selected_cols))
+        logger.debug(f"Columns Dropped: {columns_dropped}")
 
     def correlation(self, target_column='income', threshold=0.3):
         logger.info(f'Filtering features based on correlation with {target_column}')
@@ -92,26 +92,28 @@ class FilterMethods:
             to_drop.remove(target_column)
 
         df_reduced = self.regression_data.drop(columns=to_drop)
-        logger.debug(f"Origin columns: {list(self.regression_data.columns)}")
-        logger.debug(f"columns that remained: {list(df_reduced.columns)}")
+        logger.debug(f"Columns to Drop: {to_drop}")
 
     def test_f_regression(self):
         logger.info('Use to know relation between dependence variable and independence variable in regression')
         selector = SelectKBest(score_func=f_regression, k=5)
-        X = self.normalization_regression.drop(columns=['target'])
-        y = self.normalization_regression['target']
+        X = self.normalization_regression.drop(columns=['income'])
+        y = self.normalization_regression['income']
 
+        selector.fit(X, y)
         select_columns = X.columns[selector.get_support()]
         df_reduced = X[select_columns].copy()
-        df_reduced['target'] = y.values
+        df_reduced['income'] = y.values
+        columns_dropped = list(set(X.columns) - set(select_columns))
 
         scores = pd.DataFrame({
-            'Feature': self.regression_data.columns,
+            'Feature': X.columns,
             'F-Score': selector.scores_,
             'P-Value': selector.pvalues_
         }).sort_values(by='F-Score', ascending=False)
+
         logger.debug(f'Important columns: {scores}')
-        return df_reduced
+        logger.debug(f"Columns to Drop: {columns_dropped}")
 
     def mutual_information(self):
         logger.info('Measuring the statistical dependence between two variables')
@@ -219,3 +221,5 @@ class_filter = FilterMethods()
 class_filter.normalization()
 class_filter.variance_threshold()
 class_filter.correlation()
+class_filter.test_f_regression()
+class_filter.mutual_information()
