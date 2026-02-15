@@ -58,10 +58,18 @@ class FilterMethods:
         logger.info("If you will use this code, we need to divide in train test before normalization"
                     "Don't normalization all dataset, i'm using to show filters methods examples (not real life)")
         self.scaler = StandardScaler()
-        self.normalization_regression = pd.DataFrame(self.scaler.fit_transform(self.regression_data),
-                                                     columns=self.regression_data.columns)
-        self.normalization_classification = pd.DataFrame(self.scaler.fit_transform(self.classification_data),
-                                                         columns=self.classification_data.columns)
+
+        X_reg = self.regression_data.drop(columns={'income'})
+        y_reg = self.regression_data['income']
+        self.normalization_regression = pd.DataFrame(self.scaler.fit_transform(X_reg),
+                                                     columns=X_reg.columns)
+        self.normalization_regression['income'] = y_reg.values
+
+        X_class = self.classification_data.drop(columns={'approved'})
+        y_class = self.classification_data['approved']
+        self.normalization_classification = pd.DataFrame(self.scaler.fit_transform(X_class),
+                                                         columns=X_class.columns)
+        self.normalization_classification['approved'] = y_class.values
 
     def variance_threshold(self):
         logger.info('Use variance to select features, drop low variance, will not have changes in our models')
@@ -118,39 +126,39 @@ class FilterMethods:
     def mutual_information(self):
         logger.info('Measuring the statistical dependence between two variables')
         logger.info('Looking classification')
-        X = self.normalization_classification.drop(columns=['target'])
-        y = self.normalization_classification['target']
-        scores = mutual_info_classif(X, y)
+        X_class = self.normalization_classification.drop(columns=['approved'])
+        y_class = self.normalization_classification['approved']
+        scores = mutual_info_classif(X_class, y_class)
 
-        mi_scores = pd.Series(scores, index=X.columns)
+        mi_scores = pd.Series(scores, index=X_class.columns)
         mi_scores = mi_scores.sort_values(ascending=False)
 
         selector = SelectKBest(mutual_info_classif, k=5)
-        X_new = selector.fit_transform(X, y)
-        print(X_new)
-        print(mi_scores)
+        selector.fit(X_class, y_class)
 
-        select_columns = X.columns[selector.get_support()]
-        df_reduced_classify = X[select_columns].copy()
-        df_reduced_classify['target'] = y.values
+        select_columns = X_class.columns[selector.get_support()]
+        df_reduced_classify = X_class[select_columns].copy()
+        df_reduced_classify['approved'] = y_class.values
+        columns_dropped_class = list(set(X_class.columns) - set(select_columns))
+
+        logger.debug(f"Columns to Drop Classification: {columns_dropped_class}")
 
         logger.info('Looking Regression')
-        X = self.normalization_regression.drop(columns=['target'])
-        y = self.normalization_regression['target']
-        scores = mutual_info_classif(X, y)
+        X_reg = self.normalization_regression.drop(columns=['income'])
+        y_reg = self.normalization_regression['income']
+        scores = mutual_info_regression(X_reg, y_reg)
 
-        mi_scores = pd.Series(scores, index=X.columns)
+        mi_scores = pd.Series(scores, index=X_reg.columns)
         mi_scores = mi_scores.sort_values(ascending=False)
 
         selector = SelectKBest(mutual_info_regression, k=5)
-        X_new = selector.fit_transform(X, y)
-        print(X_new)
-        print(mi_scores)
+        selector.fit(X_reg, y_reg)
 
-        select_columns = X.columns[selector.get_support()]
-        df_reduced_regression = X[select_columns].copy()
-        df_reduced_regression['target'] = y.values
-        return df_reduced_classify, df_reduced_regression
+        select_columns = X_reg.columns[selector.get_support()]
+        df_reduced_regression = X_reg[select_columns].copy()
+        df_reduced_regression['income'] = y_reg.values
+        columns_dropped_regression = list(set(X_reg.columns) - set(select_columns))
+        logger.debug(f"Columns to Drop classify: {columns_dropped_regression}")
 
     def recursive_feature_elimination(self):
         logger.info('RFE working with Random Forest for classification')
