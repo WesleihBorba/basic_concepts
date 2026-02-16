@@ -74,13 +74,12 @@ class FilterMethods:
     def variance_threshold(self):
         logger.info('Use variance to select features, drop low variance, will not have changes in our models')
         X = self.normalization_regression.drop(columns=['income'])
-        y = self.normalization_regression['income']
         selector = VarianceThreshold(threshold=0.8)
 
         selector.fit(X)
         selected_cols = X.columns[selector.get_support()]
         df_reduced = X[selected_cols].copy()
-        columns_dropped = list(set(X.columns) - set(selected_cols))
+        columns_dropped = list(set(df_reduced.columns) - set(selected_cols))
         logger.debug(f"Columns Dropped: {columns_dropped}")
 
     def correlation(self, target_column='income', threshold=0.3):
@@ -101,6 +100,7 @@ class FilterMethods:
 
         df_reduced = self.regression_data.drop(columns=to_drop)
         logger.debug(f"Columns to Drop: {to_drop}")
+        logger.debug(f'Dataframe: {df_reduced}')
 
     def test_f_regression(self):
         logger.info('Use to know relation between dependence variable and independence variable in regression')
@@ -132,6 +132,7 @@ class FilterMethods:
 
         mi_scores = pd.Series(scores, index=X_class.columns)
         mi_scores = mi_scores.sort_values(ascending=False)
+        logger.debug(f'values of scores of classification {mi_scores}')
 
         selector = SelectKBest(mutual_info_classif, k=5)
         selector.fit(X_class, y_class)
@@ -150,6 +151,7 @@ class FilterMethods:
 
         mi_scores = pd.Series(scores, index=X_reg.columns)
         mi_scores = mi_scores.sort_values(ascending=False)
+        logger.debug(f'values of scores of Regression {mi_scores}')
 
         selector = SelectKBest(mutual_info_regression, k=5)
         selector.fit(X_reg, y_reg)
@@ -173,6 +175,7 @@ class FilterMethods:
 
         cols_keep = X_class.columns[selector_class.support_]
         df_reduced_classify = X_class[cols_keep].copy()
+        logger.debug(f'Columns of new dataframe classify: {df_reduced_classify.columns}')
 
         columns_dropped_classify = list(set(X_class.columns) - set(cols_keep))
         logger.debug(f"Columns to Drop classify: {columns_dropped_classify}")
@@ -189,6 +192,7 @@ class FilterMethods:
 
         cols_keep = X_reg.columns[selector_reg.support_]
         df_reduced_regression = self.normalization_regression[cols_keep].copy()
+        logger.debug(f'Columns of new dataframe Regression: {df_reduced_regression.columns}')
 
         columns_dropped_regression = list(set(X_reg.columns) - set(cols_keep))
         logger.debug(f"Columns to Drop Regression: {columns_dropped_regression}")
@@ -205,25 +209,34 @@ class FilterMethods:
             cv=5
         )
 
-        X = self.normalization_classification.drop(columns=['target'])
-        y = self.normalization_classification['target']
+        X = self.normalization_classification.drop(columns=['approved'])
+        y = self.normalization_classification['approved']
 
         sfs_forward.fit(X, y)
 
-        cols_keep = self.classification_data.columns[sfs_forward.support_]
-        df_reduced = self.classification_data[cols_keep].copy()
-        return df_reduced
+        cols_keep = X.columns[sfs_forward.support_]
+        df_reduced = X[cols_keep].copy()
+        columns_dropped = list(set(X.columns) - set(cols_keep))
+        logger.debug(f"Columns of new dataframe: {df_reduced}")
+        logger.debug(f"Columns to Drop: {columns_dropped}")
 
     def feature_importance_trees(self):
         logger.info('Selecting the best features using Decision Trees such as the Gini with criteria.')
-        X = self.normalization_classification.drop(columns=['target'])
-        y = self.normalization_classification['target']
+        X = self.normalization_classification.drop(columns=['approved'])
+        y = self.normalization_classification['approved']
         y = [int(label) for label in y]
 
         clf = DecisionTreeClassifier(criterion='gini')
         clf = clf.fit(X, y)
-        feature_important = clf.feature_importances_
-        print(feature_important) # Trocar para o dataframe correto
+        importance = dict(zip(X.columns, clf.feature_importances_))
+
+        threshold = 0.001
+        cols_to_remove = [col for col, imp in importance.items() if imp < threshold]
+
+        df_reduced = X.drop(columns=cols_to_remove)
+
+        logger.debug(f'Columns to remove: {cols_to_remove}')
+        logger.debug(f'Columns of new dataframe: {df_reduced}')
 
 
 class_filter = FilterMethods()
@@ -233,3 +246,5 @@ class_filter.correlation()
 class_filter.test_f_regression()
 class_filter.mutual_information()
 class_filter.recursive_feature_elimination()
+class_filter.sequential_feature_selection()
+class_filter.feature_importance_trees()
