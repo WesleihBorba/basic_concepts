@@ -1,9 +1,10 @@
 # Goal: Predict e-mail spam using Bayes
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import recall_score, precision_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
 import re
 import logging
 import sys
@@ -66,13 +67,9 @@ class BayesTheorem:
         logger.debug(f"Train: {self.X_train.shape}, Test: {self.X_test.shape}")
 
     def fitting_data(self):
-        logger.info('Fitting with Logistic Regression')
-        self.model = LogisticRegression(
-            max_iter=1000,
-            class_weight='balanced',
-            penalty='l2',
-            solver='liblinear'
-        )
+        logger.info('Fitting with Bayes MultinomialNB')
+
+        self.model = MultinomialNB(alpha=1.0)  # Smoothing
 
         self.model = self.model.fit(self.X_train, self.y_train)
 
@@ -93,7 +90,6 @@ class BayesTheorem:
 
         logger.debug(f'Precision Score: {precision_score(self.y_test, self.predict_values)}')
         logger.debug(f'Recall score: {recall_score(self.y_test, self.predict_values)}')
-        logger.debug(f'F1 Score: {f1_score(self.y_test, self.predict_values)}')
 
 
 class_bayes = BayesTheorem()
