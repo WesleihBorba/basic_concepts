@@ -2,7 +2,10 @@
 import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.decomposition import PCA
+from sklearn.preprocessing import PowerTransformer
+from scipy.stats import shapiro
+import statsmodels.api as sm
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -40,6 +43,28 @@ class LinearDiscriminant:
         self.components, self.lda_data = None, None
         self.scaler, self.normalization_classification = None, None
 
+    def test_multicollinearity(self):
+        logger.info("Test of Multicollinearity")
+        X = self.classification_data.drop(columns={'approved'})
+
+        new_X_test = sm.add_constant(X)
+        vif_data = pd.DataFrame()
+        vif_data["variable"] = new_X_test.columns
+        vif_data["VIF"] = [variance_inflation_factor(new_X_test.values, i) for i in range(new_X_test.shape[1])]
+
+        # Drop constant
+        vif_data = vif_data[vif_data["variable"] != "const"]
+
+        for _, row in vif_data.iterrows():
+            logger.debug(f"Variable: {row['variable']}, VIF: {row['VIF']:.4f}")
+
+        # Attention of something wrong
+        high_vif = vif_data[vif_data["VIF"] > 5]
+        if not high_vif.empty:
+            logger.warning(f"High multicollinearity detected:\n{high_vif}")
+        else:
+            logger.info("No significant multicollinearity detected.")
+
     def normalization(self):
         logger.info('Adjust data to use some methods')
         logger.info("If you will use this code, we need to divide in train test before normalization"
@@ -51,6 +76,22 @@ class LinearDiscriminant:
         self.normalization_classification = pd.DataFrame(self.scaler.fit_transform(X),
                                                          columns=X.columns)
         self.normalization_classification['approved'] = y.values
+
+    def assumptions(self):
+        logger.info('Fixing Normality, transforming in normal variables')
+        X = self.classification_data.drop(columns={'approved'})
+        y = self.classification_data['approved']
+
+        columns = X.columns
+        for col in columns:
+            stat, p = shapiro(self.classification_data[col])
+            if p < 0.05:
+                logger.debug(f'The variable {col} is NOT normally distributed.')
+                pt = PowerTransformer(method='yeo-johnson')
+                self.normalization_classification = pd.DataFrame(pt.fit_transform(X), columns=X.columns)
+                self.normalization_classification['approved'] = y.values
+
+
 
     def pca_model(self):
         logger.info('Using PCA model and creating dataframe')
