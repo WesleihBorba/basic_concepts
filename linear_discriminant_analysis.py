@@ -34,13 +34,13 @@ class LinearDiscriminant:
             random_state=42
         )
         self.columns = ["income", "credit_score", "debt_to_income_ratio", "employment_history",
-                                  "loan_amount", "loan_term", "previous_defaults", "savings_balance", "property_value",
-                                  "number_of_open_credits", "age", "residence_type"]
+                        "loan_amount", "loan_term", "previous_defaults", "savings_balance", "property_value",
+                        "number_of_open_credits", "age", "residence_type"]
         self.classification_data = pd.DataFrame(self.X_class, columns=self.columns)
         self.classification_data["approved"] = self.y_class
 
-        self.components, self.lda_data = None * 2
-        self.scaler, self.prepared_data = None * 3
+        self.components, self.lda_data, self.X_lda = None, None, None
+        self.scaler, self.prepared_data = None, None
 
     def test_multicollinearity(self):
         logger.info("Test of Multicollinearity")
@@ -99,40 +99,24 @@ class LinearDiscriminant:
         X = self.prepared_data.drop(columns=['approved'])
         y = self.prepared_data['approved']
 
-        X_lda = lda.fit_transform(X, y)
+        self.X_lda = lda.fit_transform(X, y)
         logger.info("LDA fitted. Explained variance ratio: %s", lda.explained_variance_ratio_)
 
+    def plot_lda(self):
+        logger.info('Create graph after LDA transformation')
+        plt.figure(figsize=(10, 6))
+
+        df_plot = pd.DataFrame({'LDA_Component': self.X_lda.flatten(), 'Target': self.prepared_data['approved']})
+
+        sns.kdeplot(data=df_plot, x='LDA_Component', hue='Target', fill=True)
+        plt.title('Separation of our classes')
+        plt.xlabel('Linear Components as 1')
+        plt.ylabel('Density')
+        plt.show()
 
 
-    def pca_model(self):
-        logger.info('Using PCA model and creating dataframe')
-        X = self.normalization_classification.drop(columns={'approved'})
-        y = self.normalization_classification['approved']
-        lda = LinearDiscriminantAnalysis(n_components=1)
-        lda_array = lda.fit_transform(X)
-
-    def plot_pca(self):
-        logger.info('Create graph if have less than 3 dimensional')
-        if self.components is None or self.pca_data is None:
-            logger.debug("Run model or fix it")
-            return
-
-        if self.components == 2:
-            plt.figure(figsize=(10, 6))
-            sns.scatterplot(data=self.pca_data, x='PC1', y='PC2', hue='approved', alpha=0.6)
-            plt.title('PCA - 2 Dimensional')
-            plt.show()
-        elif self.components == 1:
-            plt.figure(figsize=(10, 4))
-            sns.scatterplot(data=self.pca_data, x='PC1', y=[0]*len(self.pca_data), hue='approved', alpha=0.5)
-            plt.title('PCA - 1 Dimensional')
-            plt.show()
-        else:
-            logger.debug(f"Won't have plot because have more than 2 components.")
-
-
-pca_class = PrincipalComponentAnalysis()
-pca_class.normalization()
-pca_class.number_of_components()
-pca_class.pca_model()
-pca_class.plot_pca()
+lda_class = LinearDiscriminant()
+lda_class.test_multicollinearity()
+lda_class.run_assumptions_and_fix()
+lda_class.fit_lda()
+lda_class.plot_lda()
