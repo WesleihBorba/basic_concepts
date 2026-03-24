@@ -3,17 +3,16 @@ from statsmodels.stats.stattools import durbin_watson
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
 from sklearn.linear_model import Lasso, Ridge
+from sklearn.preprocessing import StandardScaler
 from statsmodels.stats.diagnostic import het_breuschpagan
-from scipy.stats import shapiro
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.datasets import make_regression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 import logging
 import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import numpy as np
 
 # Logger setting
 logger = logging.getLogger(__name__)
@@ -26,11 +25,14 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-class MultipleRegression:
+class LassoRidgeModel:
     def __init__(self):
-        self.train, self.test = None, None
-        self.predict_values, self.ridge_model, self_lasso_model = None, None, None
-        self.resid = None
+        self.X_train, self.X_test, self.y_train, self.y_test = [None] * 4
+        self.best_model_lasso, self.best_model_ridge = [None] * 2
+        self.fitted_values_lasso, self.fitted_values_ridge = [None] * 2
+        self.resid_lasso, self.resid_ridge = [None] * 2
+        self.predict_values_lasso, self.predict_values_ridge = [None] * 2
+        self.results_map = None
 
         X, y = make_regression(
             n_samples=15000,
@@ -91,105 +93,118 @@ class MultipleRegression:
 
     def train_test(self):
         logger.info("Divide train and test")
-        self.train, self.test = train_test_split(self.data, test_size=0.3,
-                                                 random_state=42)
-        logger.debug(f"Shapes - test: {self.test.shape}, train: {self.train.shape}")
+        X = self.data.drop(columns=['income'])
+        y = self.data['income']
+        X_train, X_test, self.y_train, self.y_test = train_test_split(
+            X, y, test_size=0.3, random_state=42
+        )
 
-    def fit_model(self):
-        logger.info('Starting to fit our regression')
-        try:
-            model = sm.OLS.from_formula('income ~ education + working_time', data=self.train)
-            self.fit_regression = model.fit()
-            logger.info("Success!")
-        except Exception as e:
-            logger.error(f"Fail to training: {e}")
+        logger.info('Scaling our data')
+        scaler = StandardScaler()
+        self.X_train = scaler.fit_transform(X_train)
+        self.X_test = scaler.transform(X_test)
 
-        logger.info(f"Coefficients: {self.fit_regression.params}")
+        logger.debug(f"Shapes - Train: {self.X_train.shape}, Test: {self.X_test.shape}")
 
-    def predict_model(self):
-        logger.info('Predict Test Data')
-        self.predict_values = self.fit_regression.predict(self.test[['education', 'working_time']])
-        self.resid = self.test['income'] - self.predict_values
+    def best_parameters(self):
+        logger.info('Finding best parameters of our models')
+        param_grid = {'alpha': [0.001, 0.01, 0.1, 1, 10, 100]}
+
+        grid_lasso = GridSearchCV(Lasso(max_iter=10000), param_grid, cv=5, scoring='neg_mean_squared_error')
+        grid_lasso.fit(self.X_train, self.y_train)
+        self.best_model_lasso = grid_lasso.best_estimator_
+
+        grid_ridge = GridSearchCV(Ridge(), param_grid, cv=5, scoring='neg_mean_squared_error')
+        grid_ridge.fit(self.X_train, self.y_train)
+        self.best_model_ridge = grid_ridge.best_estimator_
+
+        logger.debug(f"Best Alpha Lasso: {grid_lasso.best_params_['alpha']}")
+        logger.debug(f"Best Alpha Ridge: {grid_ridge.best_params_['alpha']}")
+
+    def generate_residuals(self):
+        logger.info('Save residues of each model')
+        self.results_map = {
+            'Lasso': {
+                'fitted': self.best_model_lasso.predict(self.X_train),
+                'resid': self.y_train - self.best_model_lasso.predict(self.X_train),
+                'predict': self.best_model_lasso.predict(self.X_test)
+            },
+            'Ridge': {
+                'fitted': self.best_model_ridge.predict(self.X_train),
+                'resid': self.y_train - self.best_model_ridge.predict(self.X_train),
+                'predict': self.best_model_ridge.predict(self.X_test)
+            }
+        }
 
     def homoscedasticity(self):
         logger.info("Homoscedasticity assumption")
 
-        resid = self.fit_regression.resid
-        exog = sm.add_constant(self.train[['education', 'working_time']])
-
-        bp_test = het_breuschpagan(resid, exog)
+        exog = sm.add_constant(self.X_train)
         labels = ['LM Statistic', 'LM-Test p-value', 'F-Statistic', 'F-Test p-value']
-        result = dict(zip(labels, bp_test))
 
-        plt.scatter(self.fit_regression.fittedvalues, resid, alpha=0.5)
-        plt.axhline(0, linestyle='--', color='red')
-        plt.xlabel('Fitted values')
-        plt.ylabel('Residuals')
-        plt.title('Residuals vs Fitted Values')
-        plt.show()
+        for model_name, data in self.results_map.items():
+            resid = data['resid']
+            fitted = data['fitted']
 
-        if result['LM-Test p-value'] >= 0.05:
-            logger.debug(f"Homoscedasticity confirmed (p-value={result['LM-Test p-value']:.4f})")
-        else:
-            logger.warning(f"Heteroscedasticity detected (p-value={result['LM-Test p-value']:.4f})")
+            bp_test = het_breuschpagan(resid, exog)
+            result = dict(zip(labels, bp_test))
+
+            plt.figure(figsize=(8, 4))
+            plt.scatter(fitted, resid, alpha=0.3, s=10)
+            plt.axhline(0, linestyle='--', color='red')
+            plt.xlabel('Fitted values')
+            plt.ylabel('Residuals')
+            plt.title(f'Residuals vs Fitted Values - {model_name}')
+            plt.show()
+
+            if result['LM-Test p-value'] >= 0.05:
+                logger.info(f"[{model_name}] Homoscedasticity confirmed (p={result['LM-Test p-value']:.4f})")
+            else:
+                logger.warning(f"[{model_name}] Heteroscedasticity detected (p={result['LM-Test p-value']:.4f})")
 
     def normality_of_residuals(self):
         logger.info("Resid of our model need to follow a normal distribution")
 
-        stat, p_value = shapiro(self.resid)
-        logger.info(f"Stats: {stat:.4f}, p-valor: {p_value:.4f}")
-
-        if p_value > 0.05:
-            logger.debug("Our model follow a normal distribution")
-        else:
-            logger.warning("We will need to adjust our model")
-            return
+        for model_name, data in self.results_map.items():
+            resid = data['resid']
+            sm.qqplot(resid, line='r')
+            plt.title(f'Q-Q Plot for Normality Test - {model_name}')
+            plt.xlabel('Theoretical Quantiles (Normal Distribution)')
+            plt.ylabel('Observed Quantiles (Data Sample)')
+            plt.show()
 
     def independence_of_errors(self):
         logger.info("Testing independence of residuals (Durbin-Watson Test)")
-        dw_stat = durbin_watson(self.resid)
-        logger.info(f"Durbin-Watson statistic: {dw_stat:.4f}")
 
-        if 1.5 <= dw_stat <= 2.5:
-            logger.debug("Residuals appear to be independent.")
-        else:
-            logger.warning("Residuals may be auto correlated — check model specification.")
+        for model_name, data in self.results_map.items():
+            resid = data['resid']
+            dw_stat = durbin_watson(resid)
+            logger.info(f"Durbin-Watson statistic: {dw_stat:.4f} - {model_name}")
+
+            if 1.5 <= dw_stat <= 2.5:
+                logger.debug("Residuals appear to be independent.")
+            else:
+                logger.warning("Residuals may be auto correlated — check model specification.")
 
     def evaluating_model(self):
         logger.info("Looking if our model is good to use")
-        mse = mean_squared_error(self.test['income'], self.predict_values)
-        r2 = r2_score(self.test['income'], self.predict_values)
+        for model_name, data in self.results_map.items():
+            predict_data = data['predict']
+            mse = mean_squared_error(self.y_test, predict_data)
+            r2 = r2_score(self.y_test, predict_data)
 
-        logger.info(f'Mean Squared Error: {mse}')
-        logger.info(f'R-squared: {r2}')
-
-    def plot_multiple_regression(self):
-        sample = self.test.sample(50)  # 50 random points
-        y_true = sample['income']
-        y_predict = self.fit_regression.predict(sample[['education', 'working_time']])
-
-        plt.scatter(y_true, y_predict, alpha=0.7)
-        plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
-
-        for i in range(len(sample)):
-            plt.plot([y_true.iloc[i], y_true.iloc[i]], [y_true.iloc[i], y_predict.iloc[i]], 'gray', alpha=0.3)
-
-        plt.xlabel('Real value (income)')
-        plt.ylabel('Predict value (income)')
-        plt.title('Comparison between actual and predicted values (with errors)')
-        plt.legend()
-        plt.show()
+            logger.info(f'Mean Squared Error of {model_name}: {mse}')
+            logger.info(f'R-squared of {model_name}: {r2}')
 
 
-class_regression = MultipleRegression()
+class_regression = LassoRidgeModel()
 class_regression.linearity_assumption()
 class_regression.correlation()
 class_regression.test_multicollinearity()
-#class_regression.train_test()
-#class_regression.fit_model()
-#class_regression.predict_model()
-#class_regression.homoscedasticity()
-#class_regression.normality_of_residuals()
-#class_regression.independence_of_errors()
-#class_regression.evaluating_model()
-#class_regression.plot_multiple_regression()
+class_regression.train_test()
+class_regression.best_parameters()
+class_regression.generate_residuals()
+class_regression.homoscedasticity()
+class_regression.normality_of_residuals()
+class_regression.independence_of_errors()
+class_regression.evaluating_model()
