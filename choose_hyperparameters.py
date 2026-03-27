@@ -3,6 +3,8 @@ import pandas as pd
 import time
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
+from skopt import BayesSearchCV
+from skopt.space import Integer, Categorical
 import logging
 import sys
 
@@ -114,6 +116,23 @@ class Hyperparameters:
         execution_time = end_time - start_time
         logger.debug(f"Program executed in: {execution_time:.5f} seconds")
         logger.info(f'Best Estimator of Random Search: {self.model}')
+
+    def bayesian_optimization(self):
+        search_space = {
+            'n_estimators': Integer(50, 200),
+            'max_depth': Integer(1, 20),
+            'criterion': Categorical(['gini', 'entropy']),
+        }
+
+        opt = BayesSearchCV(
+            estimator=model,
+            search_spaces=search_space,
+            n_iter=50,  # Number of hyperparameter combinations to try
+            cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),
+            scoring='accuracy',
+            n_jobs=-1,  # Use all available cores
+            random_state=42,
+        )
 
 
 hyperparameters_class = Hyperparameters()
