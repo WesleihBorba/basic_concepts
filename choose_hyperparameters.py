@@ -4,6 +4,10 @@ import time
 from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV, RandomizedSearchCV
 from sklearn.ensemble import RandomForestClassifier
 import optuna
+import pygad
+import pygad.kerasga
+from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_score
 import logging
 import sys
@@ -78,7 +82,6 @@ class Hyperparameters:
 
         execution_time = end_time - start_time
         logger.debug(f"Program executed in: {execution_time:.5f} seconds")
-        logger.debug(f'Best Estimator of Grid Search: {self.model_grid}')
 
     def random_search(self):
         logger.info('Finding best hyperparameters with Random Search')
@@ -103,7 +106,6 @@ class Hyperparameters:
 
         execution_time = end_time - start_time
         logger.debug(f"Program executed in: {execution_time:.5f} seconds")
-        logger.debug(f'Best Estimator of Random Search: {self.model_random}')
 
     def bayesian_optimization(self):
         logger.info('Finding best hyperparameters with Bayesian optimization')
@@ -141,17 +143,98 @@ class Hyperparameters:
 
         execution_time = end_time - start_time
         logger.debug(f"Program executed in: {execution_time:.5f} seconds")
-        logger.debug(f'Best Estimator of Random Search: {self.model_bayesian}')
-
 
     def genetic_algorithm(self):
-        pass
-    
+        logger.info('Finding best hyperparameters with Genetic Algorithm (PyGAD)')
+        start_time = time.perf_counter()
+
+        def fitness_func(ga_instance, solution, solution_idx):
+            params = {
+                'n_estimators': int(solution[0]),
+                'max_depth': int(solution[1]),
+                'min_samples_split': int(solution[2]),
+                'min_samples_leaf': int(solution[3]),
+                'max_features': ['sqrt', 'log2'][int(solution[4])],
+                'class_weight': [None, 'balanced'][int(solution[5])],
+            }
+
+            clf = RandomForestClassifier(**params, random_state=0, n_jobs=-1, criterion='gini', bootstrap=True)
+            score = cross_val_score(clf, self.X_train, self.y_train,
+                                    cv=self.cv, scoring='recall', n_jobs=-1).mean()
+            return score
+
+        gene_space = [
+            {'low': 50, 'high': 200},  # n_estimators
+            {'low': 1, 'high': 20},  # max_depth
+            {'low': 2, 'high': 10},  # min_samples_split
+            {'low': 1, 'high': 5},  # min_samples_leaf
+            [0, 1],  # max_features
+            [0, 1]  # class_weight
+        ]
+
+        ga_instance = pygad.GA(
+            num_generations=10,  # Population evolution
+            num_parents_mating=5,  # How many parents reproduce per generation
+            fitness_func=fitness_func,
+            sol_per_pop=10,  # Size of population
+            num_genes=len(gene_space),
+            gene_space=gene_space,
+            parent_selection_type="sss",  # Steady State Selection
+            crossover_type="single_point",
+            mutation_type="random",
+            mutation_probability=0.1
+        )
+
+        ga_instance.run()
+
+        solution, solution_fitness, solution_idx = ga_instance.best_solution()
+
+        best_params = {
+            'n_estimators': int(solution[0]),
+            'max_depth': int(solution[1]),
+            'min_samples_split': int(solution[2]),
+            'min_samples_leaf': int(solution[3]),
+            'max_features': ['sqrt', 'log2'][int(solution[4])],
+            'class_weight': [None, 'balanced'][int(solution[5])]
+        }
+
+        logger.info(f'Best parameters: {best_params}')
+        logger.info(f'Best CV score: {solution_fitness:.4f}')
+
+        self.model_genetic = RandomForestClassifier(**best_params, random_state=0, n_jobs=-1, criterion='gini',
+                                                    bootstrap=True)
+        self.model_genetic.fit(self.X_train, self.y_train)
+
+        execution_time = time.perf_counter() - start_time
+        logger.debug(f"Program executed in: {execution_time:.5f} seconds")
+
     def evaluating_model(self):
-        pass
+        logger.info("Looking if our model is good to use")
+
+        list_models = {
+            'Grid Search': self.model_grid,
+            'Random Search': self.model_random,
+            'Bayesian Optimizer': self.model_bayesian,
+            'Genetic Algorithm': self.model_genetic}
+
+        for name, lists in list_models.items():
+            predict_values = lists.predict(self.X_test)
+            disp = ConfusionMatrixDisplay(
+                confusion_matrix=confusion_matrix(self.y_test, predict_values),
+                display_labels=['Approved', 'Denied']
+            )
+            disp.plot(cmap='Blues')
+            plt.title(f"Confusion Matrix - Loan Credit - Using {name}")
+            plt.show()
+
+            logger.debug(f'Precision Score - using {name}: {precision_score(self.y_test, predict_values)}')
+            logger.debug(f'Recall score - using {name}: {recall_score(self.y_test, predict_values)}')
+            logger.debug(f'F1 Score - using {name}: {f1_score(self.y_test, predict_values)}')
+
 
 hyperparameters_class = Hyperparameters()
 hyperparameters_class.train_test()
-#hyperparameters_class.grid_search()
-#hyperparameters_class.random_search()
+hyperparameters_class.grid_search()
+hyperparameters_class.random_search()
 hyperparameters_class.bayesian_optimization()
+hyperparameters_class.genetic_algorithm()
