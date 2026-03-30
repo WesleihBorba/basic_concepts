@@ -44,7 +44,7 @@ class Hyperparameters:
 
         self.algorithm = RandomForestClassifier(random_state=0, n_jobs=-1, criterion='gini', bootstrap=True)
 
-        self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\Fases da vida\\Fase I\\Repository Projects\\files\\bankloan.csv')
+        self.data = pd.read_csv('files\\bankloan.csv')
 
     def train_test(self):
         logger.info("Divide train and test")
@@ -148,14 +148,14 @@ class Hyperparameters:
         logger.info('Finding best hyperparameters with Genetic Algorithm (PyGAD)')
         start_time = time.perf_counter()
 
-        def fitness_func(ga_instance, solution, solution_idx):
+        def fitness_func(ga_instance_func, solution_func, solution_idx_func):
             params = {
-                'n_estimators': int(solution[0]),
-                'max_depth': int(solution[1]),
-                'min_samples_split': int(solution[2]),
-                'min_samples_leaf': int(solution[3]),
-                'max_features': ['sqrt', 'log2'][int(solution[4])],
-                'class_weight': [None, 'balanced'][int(solution[5])],
+                'n_estimators': int(solution_func[0]),
+                'max_depth': int(solution_func[1]),
+                'min_samples_split': int(solution_func[2]),
+                'min_samples_leaf': int(solution_func[3]),
+                'max_features': ['sqrt', 'log2'][int(solution_func[4])],
+                'class_weight': [None, 'balanced'][int(solution_func[5])],
             }
 
             clf = RandomForestClassifier(**params, random_state=0, n_jobs=-1, criterion='gini', bootstrap=True)
@@ -238,3 +238,4 @@ hyperparameters_class.grid_search()
 hyperparameters_class.random_search()
 hyperparameters_class.bayesian_optimization()
 hyperparameters_class.genetic_algorithm()
+hyperparameters_class.evaluating_model()
