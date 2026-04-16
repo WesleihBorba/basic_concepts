@@ -1,5 +1,5 @@
 # Goal: To learn some filtering methods for regression or classification models
-from sklearn.feature_selection import (VarianceThreshold, f_regression, SelectKBest, mutual_info_classif,
+from sklearn.feature_selection import (VarianceThreshold, f_regression, f_classif, SelectKBest, mutual_info_classif,
                                        mutual_info_regression, RFE, SequentialFeatureSelector)
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
@@ -123,6 +123,31 @@ class FilterMethods:
         logger.debug(f'Important columns: {scores}')
         logger.debug(f"Columns to Drop: {columns_dropped}")
 
+    def test_f_classify(self, k_features=5):
+        logger.info('Use ANOVA (f_classify) to find relation between numerical features and categorical target')
+
+        X = self.normalization_classification.drop(columns=['approved'])
+        y = self.normalization_classification['approved']
+
+        selector = SelectKBest(score_func=f_classif, k=k_features)
+        selector.fit(X, y)
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced = X[select_columns].copy()
+        df_reduced['approved'] = y.values
+        columns_dropped = list(set(X.columns) - set(select_columns))
+
+        scores = pd.DataFrame({
+            'Feature': X.columns,
+            'F-Score': selector.scores_,
+            'P-Value': selector.pvalues_
+        }).sort_values(by='F-Score', ascending=False)
+
+        logger.debug(f'Important classification columns: \n{scores}')
+        logger.debug(f"Columns to Drop (Classify): {columns_dropped}")
+
+        return df_reduced
+
     def mutual_information(self):
         logger.info('Measuring the statistical dependence between two variables')
         logger.info('Looking classification')
@@ -244,6 +269,7 @@ class_filter.normalization()
 class_filter.variance_threshold()
 class_filter.correlation()
 class_filter.test_f_regression()
+class_filter.test_f_classify()
 class_filter.mutual_information()
 class_filter.recursive_feature_elimination()
 class_filter.sequential_feature_selection()
