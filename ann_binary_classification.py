@@ -1,4 +1,4 @@
-# Goal: Classify Bank churn using ANN models of Neural Network
+# Goal: Classify Bank churn (customer continues with their account or closes) using ANN models of Neural Network
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
@@ -18,12 +18,11 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 
-# https://www.kaggle.com/competitions/playground-series-s4e1/data
-
 class NeuralNetworkANN:
     def __init__(self):
         self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\Fases da vida\\Fase I\\Repository Projects\\files\\ANN_train.csv')
         self.X_train, self.X_test, self.y_train, self.y_test = [None] * 4
+        self.columns_to_exclude_mutual, self.columns_to_exclude_anova = [None] * 2
 
     def exploratory_analyses(self):
         logger.info('Null data?')
@@ -51,7 +50,50 @@ class NeuralNetworkANN:
         encoder = LabelEncoder()
         self.data['Geography'] = encoder.fit_transform(self.data['Geography'])
 
+    def best_variables(self):
+        logger.info('Use ANOVA (f_classify) to find relation between numerical features and categorical target')
+
+        X = self.data.drop(columns=['Exited'])
+        y = self.data['Exited']
+
+        selector = SelectKBest(score_func=f_classif, k=5)
+        selector.fit(X, y)
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced = X[select_columns].copy()
+        df_reduced['Exited'] = y.values
+        self.columns_to_exclude_anova = list(set(X.columns) - set(select_columns))
+
+        scores = pd.DataFrame({
+            'Feature': X.columns,
+            'F-Score': selector.scores_,
+            'P-Value': selector.pvalues_
+        }).sort_values(by='F-Score', ascending=False)
+
+        logger.debug(f'Important classification columns: \n{scores}')
+        logger.debug(f"Columns to Drop with f_classify: {self.columns_to_exclude_anova}")
+
+        logger.info('Measuring the statistical dependence between two variables')
+        scores = mutual_info_classif(X, y)
+
+        mi_scores = pd.Series(scores, index=X.columns)
+        mi_scores = mi_scores.sort_values(ascending=False)
+        logger.debug(f'values of scores of classification {mi_scores}')
+
+        selector = SelectKBest(mutual_info_classif, k=5)
+        selector.fit(X, y)
+
+        select_columns = X.columns[selector.get_support()]
+        df_reduced_classify = X[select_columns].copy()
+        df_reduced_classify['Exited'] = y.values
+        self.columns_to_exclude_mutual = list(set(X.columns) - set(select_columns))
+
+        logger.debug(f"Columns to Drop with mutual information: {self.columns_to_exclude_mutual}")
+
     def divide_train_test(self):
+        logger.info('Excluding other columns based on the previous model')
+        self.data.drop(columns=self.columns_to_exclude_anova, inplace=True)
+
         logger.info('Dividing in train and test')
         X = self.data.drop(columns='Exited')
         y = self.data['Exited']
@@ -67,51 +109,11 @@ class NeuralNetworkANN:
         self.X_train = scaler.fit_transform(self.X_train)
         self.X_test = scaler.transform(self.X_test)
 
-    def best_variables(self):
-        logger.info('Use ANOVA (f_classify) to find relation between numerical features and categorical target')
-
-        X = self.data.drop(columns=['Exited'])
-        y = self.data['Exited']
-
-        selector = SelectKBest(score_func=f_classif, k=5)
-        selector.fit(X, y)
-
-        select_columns = X.columns[selector.get_support()]
-        df_reduced = X[select_columns].copy()
-        df_reduced['Exited'] = y.values
-        columns_dropped = list(set(X.columns) - set(select_columns))
-
-        scores = pd.DataFrame({
-            'Feature': X.columns,
-            'F-Score': selector.scores_,
-            'P-Value': selector.pvalues_
-        }).sort_values(by='F-Score', ascending=False)
-
-        logger.debug(f'Important classification columns: \n{scores}')
-        logger.debug(f"Columns to Drop with f_classify: {columns_dropped}")
-
-        logger.info('Measuring the statistical dependence between two variables')
-        scores = mutual_info_classif(X, y)
-
-        mi_scores = pd.Series(scores, index=X.columns)
-        mi_scores = mi_scores.sort_values(ascending=False)
-        logger.debug(f'values of scores of classification {mi_scores}')
-
-        selector = SelectKBest(mutual_info_classif, k=5)
-        selector.fit(X, y)
-
-        select_columns = X.columns[selector.get_support()]
-        df_reduced_classify = X[select_columns].copy()
-        df_reduced_classify['Exited'] = y.values
-        columns_dropped_class = list(set(X.columns) - set(select_columns))
-
-        logger.debug(f"Columns to Drop with mutual information: {columns_dropped_class}")
-
     def hyperparameters_ann(self):
         pass
 
 
 class_ann = NeuralNetworkANN()
 class_ann.exploratory_analyses()
-class_ann.divide_train_test()
 class_ann.best_variables()
+class_ann.divide_train_test()
