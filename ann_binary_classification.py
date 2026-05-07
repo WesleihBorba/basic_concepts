@@ -1,11 +1,16 @@
 # Goal: Classify Bank churn (customer continues with their account or closes) using ANN models of Neural Network
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
 from sklearn.feature_selection import f_classif, SelectKBest, mutual_info_classif
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Dropout, InputLayer
 from keras.optimizers import Adam
 from scikeras.wrappers import KerasClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
@@ -33,7 +38,7 @@ class NeuralNetworkANN:
         self.best_model = None
 
         self.cv = StratifiedKFold(
-            n_splits=5,
+            n_splits=3,
             shuffle=True,
             random_state=0
         )
@@ -123,28 +128,29 @@ class NeuralNetworkANN:
         self.X_train = scaler.fit_transform(self.X_train)
         self.X_test = scaler.transform(self.X_test)
 
-    def model_ann(self, learning=0.01, num_units=64):
-        logger.info('Model ANN')
-        shape = self.data.shape[1]
+    @staticmethod
+    def model_ann(learning_rate=0.01, num_units=64, meta=None):
+        n_features = meta['n_features_in_'] if meta else 5
         model = Sequential([
-            Dense(num_units, activation='relu', input_shape=(shape-1,)),  # Number of columns less Y
+            InputLayer(shape=(n_features,)),
+            Dense(num_units, activation='relu'),  # Number of columns less Y
             Dropout(0.2),  # Overfitting in training
             Dense(num_units // 2, activation='relu'),  # Half of first (32)
             Dense(1, activation='sigmoid')
         ])
-        optimizer = Adam(learning_rate=learning)
+        optimizer = Adam(learning_rate=learning_rate)
         model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
         return model
 
     def hyperparameters_ann(self):
-        logger.info('Finding best parameters with Random Search')
-        model = KerasClassifier(build_fn=self.model_ann, verbose=0)  # Needs to be a function in "build_fn"
+        logger.info('Finding best parameters with Random Search')  # Needs to be a function in "build_fn"
+        model = KerasClassifier(model=self.model_ann, verbose=0, learning_rate=0.01, num_units=64)
 
         param_dist = {
-            'learning_rate': [0.001, 0.01, 0.1],
-            'num_units': [32, 64, 128],
-            'batch_size': [16, 32, 64],
-            'epochs': [50, 100]
+            'model__learning_rate': [0.001, 0.01],
+            'model__num_units': [32, 64],
+            'batch_size': [32],
+            'epochs': [10, 20]
         }
 
         search = RandomizedSearchCV(
@@ -152,7 +158,8 @@ class NeuralNetworkANN:
             param_distributions=param_dist,
             scoring='recall',
             cv=self.cv,
-            n_jobs=-1
+            n_iter=5,
+            n_jobs=1
         )
         search.fit(self.X_train, self.y_train)
 
