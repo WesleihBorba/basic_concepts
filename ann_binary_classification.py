@@ -2,8 +2,15 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
 from sklearn.feature_selection import f_classif, SelectKBest, mutual_info_classif
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import Adam
+from scikeras.wrappers import KerasClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import seaborn as sns
+import matplotlib.pyplot as plt
 import logging
 import sys
 
@@ -23,6 +30,13 @@ class NeuralNetworkANN:
         self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\Fases da vida\\Fase I\\Repository Projects\\files\\ANN_train.csv')
         self.X_train, self.X_test, self.y_train, self.y_test = [None] * 4
         self.columns_to_exclude_mutual, self.columns_to_exclude_anova = [None] * 2
+        self.best_model = None
+
+        self.cv = StratifiedKFold(
+            n_splits=5,
+            shuffle=True,
+            random_state=0
+        )
 
     def exploratory_analyses(self):
         logger.info('Null data?')
@@ -109,11 +123,65 @@ class NeuralNetworkANN:
         self.X_train = scaler.fit_transform(self.X_train)
         self.X_test = scaler.transform(self.X_test)
 
+    def model_ann(self, learning=0.01, num_units=64):
+        logger.info('Model ANN')
+        shape = self.data.shape[1]
+        model = Sequential([
+            Dense(num_units, activation='relu', input_shape=(shape-1,)),  # Number of columns less Y
+            Dropout(0.2),  # Overfitting in training
+            Dense(num_units // 2, activation='relu'),  # Half of first (32)
+            Dense(1, activation='sigmoid')
+        ])
+        optimizer = Adam(learning_rate=learning)
+        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+        return model
+
     def hyperparameters_ann(self):
-        pass
+        logger.info('Finding best parameters with Random Search')
+        model = KerasClassifier(build_fn=self.model_ann, verbose=0)  # Needs to be a function in "build_fn"
+
+        param_dist = {
+            'learning_rate': [0.001, 0.01, 0.1],
+            'num_units': [32, 64, 128],
+            'batch_size': [16, 32, 64],
+            'epochs': [50, 100]
+        }
+
+        search = RandomizedSearchCV(
+            estimator=model,
+            param_distributions=param_dist,
+            scoring='recall',
+            cv=self.cv,
+            n_jobs=-1
+        )
+        search.fit(self.X_train, self.y_train)
+
+        logger.info(f'Best parameters: {search.best_params_}')
+        logger.info(f'Best CV score: {search.best_score_:.4f}')
+
+        self.best_model = search.best_estimator_
+        print(self.best_model)
+
+    def evaluate_model(self):
+        logger.info('Evaluating the best model on test data')
+        y_predict = self.best_model.predict(self.X_test)
+        y_probs = self.best_model.predict_proba(self.X_test)[:, 1]
+
+        cm = confusion_matrix(self.y_test, y_predict)
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+        plt.title('Confusion Matrix')
+        plt.show()
+
+        logger.info("\n--- Classification Report ---")
+        logger.info(f'{classification_report(self.y_test, y_predict)}')
+
+        # 4. AUC Score
+        auc = roc_auc_score(self.y_test, y_probs)
+        logger.info(f"AUC Score: {auc:.4f}")
 
 
 class_ann = NeuralNetworkANN()
 class_ann.exploratory_analyses()
 class_ann.best_variables()
 class_ann.divide_train_test()
+class_ann.hyperparameters_ann()
