@@ -1,17 +1,15 @@
 # Goal: Classify Bank churn (customer continues with their account or closes) using ANN models of Neural Network
 import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
 from sklearn.feature_selection import f_classif, SelectKBest, mutual_info_classif
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, InputLayer
-from keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, InputLayer
+from tensorflow.keras.optimizers import Adam
 from scikeras.wrappers import KerasClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 import seaborn as sns
@@ -132,7 +130,7 @@ class NeuralNetworkANN:
     def model_ann(learning_rate=0.01, num_units=64, meta=None):
         n_features = meta['n_features_in_'] if meta else 5
         model = Sequential([
-            InputLayer(shape=(n_features,)),
+            InputLayer(input_shape=(n_features,)),
             Dense(num_units, activation='relu'),  # Number of columns less Y
             Dropout(0.2),  # Overfitting in training
             Dense(num_units // 2, activation='relu'),  # Half of first (32)
