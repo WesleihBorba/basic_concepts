@@ -1,14 +1,12 @@
 # Goal: Classify Bank churn (customer continues with their account or closes) using ANN models of Neural Network
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split, RandomizedSearchCV, StratifiedKFold
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, ShuffleSplit
 from sklearn.feature_selection import f_classif, SelectKBest, mutual_info_classif
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, InputLayer
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from scikeras.wrappers import KerasClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
@@ -34,12 +32,6 @@ class NeuralNetworkANN:
         self.X_train, self.X_test, self.y_train, self.y_test = [None] * 4
         self.columns_to_exclude_mutual, self.columns_to_exclude_anova = [None] * 2
         self.best_model = None
-
-        self.cv = StratifiedKFold(
-            n_splits=3,
-            shuffle=True,
-            random_state=0
-        )
 
     def exploratory_analyses(self):
         logger.info('Null data?')
@@ -142,20 +134,28 @@ class NeuralNetworkANN:
 
     def hyperparameters_ann(self):
         logger.info('Finding best parameters with Random Search')  # Needs to be a function in "build_fn"
-        model = KerasClassifier(model=self.model_ann, verbose=0, learning_rate=0.01, num_units=64)
+        es = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
+        model = KerasClassifier(
+            model=self.model_ann,
+            verbose=0,
+            class_weight={0: 1, 1: 3},
+            validation_split=0.2,
+            callbacks=[es])
 
         param_dist = {
             'model__learning_rate': [0.001, 0.01],
-            'model__num_units': [32, 64],
-            'batch_size': [32],
-            'epochs': [10, 20]
+            'model__num_units': [32, 64, 128],
+            'batch_size': [1024, 2048],  # Large batches to accelerate GPU
+            'epochs': [50, 100]  # Early Stop do before
         }
+
+        single_split_cv = ShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
 
         search = RandomizedSearchCV(
             estimator=model,
             param_distributions=param_dist,
             scoring='recall',
-            cv=self.cv,
+            cv=single_split_cv,
             n_iter=5,
             n_jobs=1
         )
