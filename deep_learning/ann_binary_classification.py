@@ -129,7 +129,7 @@ class NeuralNetworkANN:
             Dense(1, activation='sigmoid')
         ])
         optimizer = Adam(learning_rate=learning_rate)
-        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'], weighted_metrics=[])
         return model
 
     def hyperparameters_ann(self):
@@ -165,7 +165,6 @@ class NeuralNetworkANN:
         logger.info(f'Best CV score: {search.best_score_:.4f}')
 
         self.best_model = search.best_estimator_
-        print(self.best_model)
 
     def evaluate_model(self):
         logger.info('Evaluating the best model on test data')
@@ -190,3 +189,4 @@ class_ann.exploratory_analyses()
 class_ann.best_variables()
 class_ann.divide_train_test()
 class_ann.hyperparameters_ann()
+class_ann.evaluate_model()
