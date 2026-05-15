@@ -28,7 +28,7 @@ logger.addHandler(stream_handler)
 
 class NeuralNetworkANN:
     def __init__(self):
-        self.data = pd.read_csv('C:\\Users\\Weslei\\Desktop\\Assuntos_de_estudo\\Assuntos_de_estudo\\Fases da vida\\Fase I\\Repository Projects\\files\\ANN_train.csv')
+        self.data = pd.read_csv('files\\ANN_train.csv')
         self.X_train, self.X_test, self.y_train, self.y_test = [None] * 4
         self.columns_to_exclude_mutual, self.columns_to_exclude_anova = [None] * 2
         self.best_model = None
